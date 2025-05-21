@@ -74,11 +74,12 @@ Este sistema integra múltiples herramientas y scripts en un entorno Docker con 
 
 ### Opción 1: Instalación usando Docker (Recomendado)
 
-1. Clona este repositorio:
-   ```bash
-   git clone https://github.com/usuario/security-audit-system.git
-   cd security-audit-system
-   ```
+Clona este repositorio:
+```bash
+git clone https://github.com/usuario/security-audit-system.git
+cd security-audit-system
+```
+
 Ejecuta Docker Compose:
 ```bash
 docker-compose up -d
@@ -89,7 +90,7 @@ Accede a la interfaz web de n8n:
 `http://localhost:5678`
 
 
-Opción 2: Instalación nativa
+### Opción 2: Instalación nativa
 
 Clona este repositorio:
 ```bash
@@ -109,7 +110,7 @@ Accede a la interfaz web:
 `http://localhost:5678`
 
 
-Opción 3: Instalación con EasyPanel
+### Opción 3: Instalación con EasyPanel
 
 Clona este repositorio:
 ```bash
@@ -125,8 +126,8 @@ Accede a EasyPanel y navega al proyecto "pentest-automation":
 `http://tu-servidor:3000`
 
 
-📊 Uso del Sistema
-Importar los Workflows en n8n
+## 📊 Uso del Sistema
+### Importar los Workflows en n8n
 
 Accede a la interfaz web de n8n (http://localhost:5678)
 Ve a la sección "Workflows"
@@ -134,22 +135,21 @@ Haz clic en el botón "Import from File"
 Selecciona los archivos JSON de workflows en la carpeta workflows/
 Para cada workflow importado, haz clic en "Save" y luego "Activate"
 
-Ejecutar un Escaneo Completo
+### Ejecutar un Escaneo Completo
 
 Ve a la sección "Workflows" en n8n
 Encuentra y haz clic en el workflow "01-Recon-Enumeracion"
 Haz clic en "Execute Workflow"
-Completa el formulario de configuración:
+
+### Completa el formulario de configuración:
 
 Target: IP o rango de IPs objetivo
 Intensity: Nivel de intensidad del escaneo
 Evasion Techniques: Técnicas de evasión a utilizar
-
-
 Haz clic en "Execute" y espera a que finalice el escaneo
 Para las IP con vulnerabilidades, ejecuta el workflow "02-Explotacion-Principal"
 
-Revisar los Resultados
+### Revisar los Resultados
 Los resultados se almacenan en varios formatos:
 
 Reportes ejecutivos: /opt/pentest/reports/
@@ -157,7 +157,7 @@ Datos crudos: /opt/pentest/temp/
 Evidencias: /opt/pentest/reports/evidence/
 Credenciales y otros datos sensibles: /opt/pentest/reports/loot/
 
-⚙️ Personalización
+## ⚙️ Personalización
 Ajuste de Técnicas de Evasión
 Puedes personalizar las técnicas de evasión editando los archivos de configuración:
 ```json
@@ -171,7 +171,7 @@ Puedes personalizar las técnicas de evasión editando los archivos de configura
   ]
 }
 ```
-Configuración de Intensidad
+### Configuración de Intensidad
 Ajusta la intensidad de los escaneos para equilibrar la detección y la eficacia:
 ```json
 {
@@ -181,10 +181,10 @@ Ajusta la intensidad de los escaneos para equilibrar la detección y la eficacia
 }
 ```
 
-Plantillas de Reportes
+### Plantillas de Reportes
 Puedes personalizar las plantillas de reportes editando los archivos HTML en la carpeta `templates/.`
 
-📁 Estructura del Proyecto
+## 📁 Estructura del Proyecto
 ```
 security-audit-automation/
 ├── docker/
@@ -221,22 +221,22 @@ security-audit-automation/
 ├── easypanel-config.json       # Configuración de EasyPanel
 └── README.md                   # Este archivo
 ```
-🔒 Consideraciones Éticas y Legales
+## 🔒 Consideraciones Éticas y Legales
 Este sistema está diseñado exclusivamente para auditorías de seguridad autorizadas. El uso indebido de estas herramientas puede violar leyes locales e internacionales.
-Siempre:
+### Siempre:
 
 Obten autorización explícita antes de realizar pruebas
 Documenta el alcance de las pruebas por escrito
 Respeta los límites establecidos
 Reporta vulnerabilidades de manera responsable
 
-Nunca:
+### Nunca:
 
 Uses este sistema en objetivos no autorizados
 Extraigas o exfiltres datos sensibles
 Causes daños o interrupciones a los sistemas
 
-🤝 Contribuciones
+## 🤝 Contribuciones
 Las contribuciones son bienvenidas. Por favor, sigue estos pasos:
 
 Haz un fork del repositorio
@@ -245,10 +245,10 @@ Haz commit de tus cambios (git commit -am 'Añadir nueva característica')
 Haz push a la rama (git push origin feature/nueva-caracteristica)
 Crea un nuevo Pull Request
 
-🐛 Reporte de Problemas
+## 🐛 Reporte de Problemas
 Si encuentras algún error o tienes alguna sugerencia, por favor abre un issue en el repositorio.
 
-📜 Licencia
+## 📜 Licencia
 Este proyecto está licenciado bajo la Licencia MIT - consulta el archivo LICENSE para más detalles.
 
 Descargo de responsabilidad: Este sistema y sus componentes están diseñados exclusivamente para fines de seguridad defensiva y educación. Los autores no son responsables del mal uso o del daño causado por el uso de este software.
