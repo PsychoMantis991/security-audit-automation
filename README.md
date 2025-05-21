@@ -180,11 +180,12 @@ Ajusta la intensidad de los escaneos para equilibrar la detección y la eficacia
   "threads": 3
 }
 ```
+
 Plantillas de Reportes
-Puedes personalizar las plantillas de reportes editando los archivos HTML en la carpeta templates/.
+Puedes personalizar las plantillas de reportes editando los archivos HTML en la carpeta `templates/.`
 
 📁 Estructura del Proyecto
-security-audit-automation/
+`security-audit-automation/
 ├── docker/
 │   ├── Dockerfile.kali         # Imagen Docker con herramientas de pentesting
 │   └── Dockerfile.reporting    # Imagen Docker para generación de reportes
@@ -217,7 +218,7 @@ security-audit-automation/
 ├── install.sh                  # Script de instalación
 ├── setup-easypanel.sh          # Configuración para EasyPanel
 ├── easypanel-config.json       # Configuración de EasyPanel
-└── README.md                   # Este archivo
+└── README.md                   # Este archivo`
 
 🔒 Consideraciones Éticas y Legales
 Este sistema está diseñado exclusivamente para auditorías de seguridad autorizadas. El uso indebido de estas herramientas puede violar leyes locales e internacionales.
