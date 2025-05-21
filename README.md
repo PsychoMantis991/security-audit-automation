@@ -78,43 +78,51 @@ Este sistema integra múltiples herramientas y scripts en un entorno Docker con 
    ```bash
    git clone https://github.com/usuario/security-audit-system.git
    cd security-audit-system
-   
+   ```
 Ejecuta Docker Compose:
-bashdocker-compose up -d
+```bash
+docker-compose up -d
+```
 
 Accede a la interfaz web de n8n:
-http://localhost:5678
+
+`http://localhost:5678`
 
 
 Opción 2: Instalación nativa
 
 Clona este repositorio:
-bashgit clone https://github.com/tu-usuario/security-audit-automation.git
+```bash
+git clone https://github.com/tu-usuario/security-audit-automation.git
 cd security-audit-automation
-
+```
 Ejecuta el script de instalación:
-bashchmod +x install.sh
+```bash
+chmod +x install.sh
 sudo ./install.sh
-
+```
 Inicia n8n:
-bashsudo systemctl start n8n
-
+```bash
+sudo systemctl start n8n
+```
 Accede a la interfaz web:
-http://localhost:5678
+`http://localhost:5678`
 
 
 Opción 3: Instalación con EasyPanel
 
 Clona este repositorio:
-bashgit clone https://github.com/tu-usuario/security-audit-automation.git
+```bash
+git clone https://github.com/tu-usuario/security-audit-automation.git
 cd security-audit-automation
-
+```
 Ejecuta el script de configuración de EasyPanel:
-bashchmod +x setup-easypanel.sh
+```bash
+chmod +x setup-easypanel.sh
 sudo ./setup-easypanel.sh
-
+```
 Accede a EasyPanel y navega al proyecto "pentest-automation":
-http://tu-servidor:3000
+`http://tu-servidor:3000`
 
 
 📊 Uso del Sistema
@@ -152,7 +160,8 @@ Credenciales y otros datos sensibles: /opt/pentest/reports/loot/
 ⚙️ Personalización
 Ajuste de Técnicas de Evasión
 Puedes personalizar las técnicas de evasión editando los archivos de configuración:
-json{
+```json
+{
   "evasion_techniques": [
     "amsi_bypass",
     "etw_bypass",
@@ -161,12 +170,84 @@ json{
     "sleep_obfuscation"
   ]
 }
+```
 Configuración de Intensidad
 Ajusta la intensidad de los escaneos para equilibrar la detección y la eficacia:
-json{
+```json
+{
   "scan_intensity": "medium",  // Options: low, medium, high
   "timeout": 60,
   "threads": 3
 }
+```
 Plantillas de Reportes
 Puedes personalizar las plantillas de reportes editando los archivos HTML en la carpeta templates/.
+
+📁 Estructura del Proyecto
+security-audit-automation/
+├── docker/
+│   ├── Dockerfile.kali         # Imagen Docker con herramientas de pentesting
+│   └── Dockerfile.reporting    # Imagen Docker para generación de reportes
+├── scripts/
+│   ├── port-discovery.py       # Escaneo de puertos sigiloso
+│   ├── service-enum.py         # Enumeración de servicios
+│   ├── vuln-scan.py            # Escaneo de vulnerabilidades
+│   ├── exploit-dispatcher.py   # Automatización de exploits
+│   ├── post-exploitation.py    # Scripts de post-explotación
+│   ├── edr-evasion.py          # Técnicas de evasión de EDR
+│   ├── evidence-cleanup.py     # Limpieza de evidencias
+│   ├── generate_report.py      # Generador de reportes
+│   └── reporting-service.sh    # Servicio de reportes
+├── config/
+│   ├── scan-config.json        # Configuración de escaneo
+│   ├── enum-config.json        # Configuración de enumeración
+│   ├── vuln-config.json        # Configuración de análisis de vulnerabilidades
+│   ├── exploit-config.json     # Configuración de explotación
+│   ├── post-config.json        # Configuración de post-explotación
+│   ├── evasion-config.json     # Configuración de evasión
+│   └── cleanup-config.json     # Configuración de limpieza
+├── templates/
+│   └── executive-report.html   # Plantilla para reportes ejecutivos
+├── workflows/
+│   ├── 01-recon-enumeracion.json     # Workflow de reconocimiento
+│   └── 02-explotacion-principal.json # Workflow de explotación
+├── docker-compose.yml          # Configuración de Docker Compose
+├── requirements.txt            # Dependencias de Python
+├── reporting-requirements.txt  # Dependencias para reportes
+├── install.sh                  # Script de instalación
+├── setup-easypanel.sh          # Configuración para EasyPanel
+├── easypanel-config.json       # Configuración de EasyPanel
+└── README.md                   # Este archivo
+
+🔒 Consideraciones Éticas y Legales
+Este sistema está diseñado exclusivamente para auditorías de seguridad autorizadas. El uso indebido de estas herramientas puede violar leyes locales e internacionales.
+Siempre:
+
+Obten autorización explícita antes de realizar pruebas
+Documenta el alcance de las pruebas por escrito
+Respeta los límites establecidos
+Reporta vulnerabilidades de manera responsable
+
+Nunca:
+
+Uses este sistema en objetivos no autorizados
+Extraigas o exfiltres datos sensibles
+Causes daños o interrupciones a los sistemas
+
+🤝 Contribuciones
+Las contribuciones son bienvenidas. Por favor, sigue estos pasos:
+
+Haz un fork del repositorio
+Crea una nueva rama (git checkout -b feature/nueva-caracteristica)
+Haz commit de tus cambios (git commit -am 'Añadir nueva característica')
+Haz push a la rama (git push origin feature/nueva-caracteristica)
+Crea un nuevo Pull Request
+
+🐛 Reporte de Problemas
+Si encuentras algún error o tienes alguna sugerencia, por favor abre un issue en el repositorio.
+📜 Licencia
+Este proyecto está licenciado bajo la Licencia MIT - consulta el archivo LICENSE para más detalles.
+📧 Contacto
+Para consultas o soporte, puedes contactar a tu-email@ejemplo.com.
+
+Descargo de responsabilidad: Este sistema y sus componentes están diseñados exclusivamente para fines de seguridad defensiva y educación. Los autores no son responsables del mal uso o del daño causado por el uso de este software.
