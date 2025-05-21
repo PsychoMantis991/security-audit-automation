@@ -247,9 +247,8 @@ Crea un nuevo Pull Request
 
 🐛 Reporte de Problemas
 Si encuentras algún error o tienes alguna sugerencia, por favor abre un issue en el repositorio.
+
 📜 Licencia
 Este proyecto está licenciado bajo la Licencia MIT - consulta el archivo LICENSE para más detalles.
-📧 Contacto
-Para consultas o soporte, puedes contactar a tu-email@ejemplo.com.
 
 Descargo de responsabilidad: Este sistema y sus componentes están diseñados exclusivamente para fines de seguridad defensiva y educación. Los autores no son responsables del mal uso o del daño causado por el uso de este software.
