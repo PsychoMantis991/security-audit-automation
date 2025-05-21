@@ -1,0 +1,350 @@
+{
+  "name": "01-Recon-Enumeracion",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "# Flujo de Reconocimiento y Enumeración\n\nEste workflow automatiza la fase inicial de reconocimiento y enumeración, siguiendo estos pasos:\n\n1. Escaneo de puertos con técnicas de evasión\n2. Enumeración de servicios\n3. Análisis de vulnerabilidades\n\nPuede configurar los objetivos y opciones en el formulario inicial."
+      },
+      "id": "f21c0ed1-1c7c-4e82-985e-86e0bd69c0fe",
+      "name": "Descripción del Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        380,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "Configuración de Escaneo",
+        "formFields": {
+          "values": [
+            {
+              "fieldName": "target",
+              "fieldTitle": "Objetivo",
+              "fieldType": "string",
+              "fieldPlaceholder": "IP o rango CIDR (ej: 192.168.1.0/24)",
+              "fieldDefaultValue": "192.168.1.1",
+              "fieldRequired": true
+            },
+            {
+              "fieldName": "intensity",
+              "fieldTitle": "Intensidad de Escaneo",
+              "fieldType": "options",
+              "fieldOptions": "low:Baja,medium:Media,high:Alta",
+              "fieldDefaultValue": "medium",
+              "fieldRequired": true
+            },
+            {
+              "fieldName": "evasion",
+              "fieldTitle": "Técnicas de Evasión",
+              "fieldType": "multiOptions",
+              "fieldOptions": "ttl_manipulation:Manipulación TTL,ip_fragmentation:Fragmentación IP,timing:Ajuste de Timing,custom_stealth:Técnicas Personalizadas",
+              "fieldDefaultValue": "ttl_manipulation,timing",
+              "fieldRequired": false
+            }
+          ]
+        }
+      },
+      "id": "a34df52d-a7c1-462a-9f3a-3adb5e221e9e",
+      "name": "Formulario de Configuración",
+      "type": "n8n-nodes-base.form",
+      "position": [
+        600,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "command": "/opt/pentest/scripts/port-discovery.py -t {{ $json.target }} -o /opt/pentest/temp/scan_{{ $json.target.replace('/','-') }}.json --techniques {{ $json.evasion }}",
+        "executionMode": "auto"
+      },
+      "id": "a3553c4d-43c7-4dfa-a0e3-3a47b91e2235",
+      "name": "Escaneo de Puertos",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [
+        820,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "path": "/opt/pentest/temp/scan_{{ $json.target.replace('/','-') }}.json"
+      },
+      "id": "b1c34e50-ff3a-43bd-8ebb-65e5f3b0fc8e",
+      "name": "Leer Resultados de Escaneo",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "position": [
+        1040,
+        280
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "5d0aff65-7eda-4eec-9b9c-8adb07c9c4c5",
+      "name": "Convertir a JSON",
+      "type": "n8n-nodes-base.moveBinaryData",
+      "position": [
+        1260,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "command": "/opt/pentest/scripts/service-enum.py -t {{ $json.target }} -i /opt/pentest/temp/scan_{{ $json.target.replace('/','-') }}.json -o /opt/pentest/temp/enum_{{ $json.target.replace('/','-') }}.json",
+        "executionMode": "auto"
+      },
+      "id": "ebc0453a-8f78-4a98-b9db-01a4e15b59ef",
+      "name": "Enumeración de Servicios",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [
+        1480,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "path": "/opt/pentest/temp/enum_{{ $json.target.replace('/','-') }}.json"
+      },
+      "id": "6a21e8d9-abfd-47cc-9428-0a9e0b9ac1f8",
+      "name": "Leer Resultados de Enumeración",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "position": [
+        1700,
+        280
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "82be42c8-0e23-462f-a7d1-e5ec1a0f02e1",
+      "name": "Convertir a JSON",
+      "type": "n8n-nodes-base.moveBinaryData",
+      "position": [
+        1920,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "command": "/opt/pentest/scripts/vuln-scan.py -t {{ $json.target }} -i /opt/pentest/temp/scan_{{ $json.target.replace('/','-') }}.json -o /opt/pentest/temp/vuln_{{ $json.target.replace('/','-') }}.json --intensity {{ $json.intensity }}",
+        "executionMode": "auto"
+      },
+      "id": "f8712c89-c7e5-49d5-b78c-40fdcaa94a4c",
+      "name": "Análisis de Vulnerabilidades",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [
+        2140,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "path": "/opt/pentest/temp/vuln_{{ $json.target.replace('/','-') }}.json"
+      },
+      "id": "7b34db1a-e234-43f0-8c44-09ec3682f7a4",
+      "name": "Leer Resultados de Vulnerabilidades",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "position": [
+        2360,
+        280
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "1c1bd8d5-c9b2-48b6-8d84-7f20a56e76c9",
+      "name": "Convertir a JSON",
+      "type": "n8n-nodes-base.moveBinaryData",
+      "position": [
+        2580,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.success }}",
+              "operation": "equal",
+              "value2": "true"
+            }
+          ]
+        }
+      },
+      "id": "bc5e6f63-b4c3-41d2-ab0e-2be3ec70d2c0",
+      "name": "Verificar Éxito",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        2800,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "content": "=## 🎯 Objetivo: {{ $json.target }}\n\n### ✅ Escaneo Completado\n\n**Duración**: {{ $json.scan_info.duration }} segundos\n**Intensidad**: {{ $json.intensity }}\n**Técnicas de Evasión**: {{ $json.evasion }}\n\n### 📊 Resumen de Vulnerabilidades\n\n- **Críticas**: {{ $json.summary.critical }}\n- **Altas**: {{ $json.summary.high }}\n- **Medias**: {{ $json.summary.medium }}\n- **Bajas**: {{ $json.summary.low }}\n- **Informativas**: {{ $json.summary.info }}\n\n### 📋 Siguientes Pasos\n\nPara continuar con la explotación, ejecute el workflow '02-Explotacion-Principal' con el siguiente objetivo: {{ $json.target }}",
+        "outputDataSource": "input"
+      },
+      "id": "e2c0a733-b93c-49da-88c8-7267ecc07e44",
+      "name": "Reporte de Éxito",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        3020,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "content": "=## ⚠️ Error en el Proceso\n\n**Objetivo**: {{ $json.target }}\n**Mensaje**: {{ $json.message || 'Error desconocido durante el escaneo' }}\n\nPor favor, verifique la configuración e intente nuevamente.",
+        "outputDataSource": "input"
+      },
+      "id": "0df62843-4b63-444a-b36d-2d8a2f3be8fc",
+      "name": "Reporte de Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        3020,
+        380
+      ]
+    }
+  ],
+  "connections": {
+    "Descripción del Workflow": {
+      "main": [
+        [
+          {
+            "node": "Formulario de Configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formulario de Configuración": {
+      "main": [
+        [
+          {
+            "node": "Escaneo de Puertos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escaneo de Puertos": {
+      "main": [
+        [
+          {
+            "node": "Leer Resultados de Escaneo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Resultados de Escaneo": {
+      "main": [
+        [
+          {
+            "node": "Convertir a JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convertir a JSON": {
+      "main": [
+        [
+          {
+            "node": "Enumeración de Servicios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enumeración de Servicios": {
+      "main": [
+        [
+          {
+            "node": "Leer Resultados de Enumeración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Resultados de Enumeración": {
+      "main": [
+        [
+          {
+            "node": "Convertir a JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convertir a JSON1": {
+      "main": [
+        [
+          {
+            "node": "Análisis de Vulnerabilidades",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Análisis de Vulnerabilidades": {
+      "main": [
+        [
+          {
+            "node": "Leer Resultados de Vulnerabilidades",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Resultados de Vulnerabilidades": {
+      "main": [
+        [
+          {
+            "node": "Convertir a JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convertir a JSON2": {
+      "main": [
+        [
+          {
+            "node": "Verificar Éxito",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Éxito": {
+      "main": [
+        [
+          {
+            "node": "Reporte de Éxito",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reporte de Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

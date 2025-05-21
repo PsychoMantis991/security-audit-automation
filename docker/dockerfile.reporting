@@ -1,0 +1,38 @@
+FROM python:3.10-slim
+
+WORKDIR /opt/reporting
+
+# Instalación de herramientas para reportes
+RUN apt-get update && apt-get install -y \
+    wkhtmltopdf \
+    xvfb \
+    fontconfig \
+    libfontconfig1 \
+    libfreetype6 \
+    libjpeg62-turbo \
+    libpng16-16 \
+    libx11-6 \
+    libxcb1 \
+    libxext6 \
+    libxrender1 \
+    git \
+    curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Creación de directorios
+RUN mkdir -p /opt/reporting/{templates,reports,config}
+
+# Instalación de dependencias Python para generación de reportes
+COPY reporting-requirements.txt /opt/reporting/
+RUN pip3 install --no-cache-dir -r reporting-requirements.txt
+
+# Script para generar PDF desde HTML
+COPY scripts/generate_report.py /opt/reporting/
+
+# Script de inicialización del servicio
+COPY scripts/reporting-service.sh /opt/reporting/
+RUN chmod +x /opt/reporting/reporting-service.sh
+
+EXPOSE 8000
+CMD ["/opt/reporting/reporting-service.sh"]

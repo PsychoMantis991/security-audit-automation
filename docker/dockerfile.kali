@@ -1,0 +1,61 @@
+FROM kalilinux/kali-rolling:latest
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Instalación de herramientas esenciales
+RUN apt-get update && apt-get install -y \
+    python3 python3-pip python3-venv \
+    git curl wget \
+    nmap masscan \
+    metasploit-framework \
+    exploitdb \
+    nikto \
+    dirb gobuster \
+    hydra \
+    sqlmap \
+    hashcat john \
+    proxychains4 tor \
+    openssh-server \
+    netcat-traditional socat \
+    jq nano vim \
+    iputils-ping dnsutils \
+    net-tools iproute2 \
+    ncat \
+    whois \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instalación de Go para Nuclei y otras herramientas
+RUN apt-get update && apt-get install -y golang-go && apt-get clean
+ENV GOPATH=/root/go
+ENV PATH=$PATH:/root/go/bin
+
+# Instalación de Nuclei
+RUN go install -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest
+
+# Instalación de herramientas adicionales desde Go
+RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest && \
+    go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest && \
+    go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
+
+# Creación de directorios de trabajo
+RUN mkdir -p /opt/pentest/{scripts,reports,config,temp,tools}
+
+# Descarga de LinPEAS y WinPEAS
+RUN mkdir -p /opt/pentest/tools/PEASS-ng && \
+    git clone --depth 1 https://github.com/carlospolop/PEASS-ng.git /opt/pentest/tools/PEASS-ng
+
+# Instalación de dependencias Python para los scripts
+WORKDIR /opt/pentest
+COPY requirements.txt /opt/pentest/
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Configuración de acceso SSH (opcional, para mantenimiento)
+RUN mkdir /var/run/sshd
+RUN echo 'root:pentestpass' | chpasswd
+RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+
+# Exposición de puertos (opcional, solo si se necesita acceso directo)
+# EXPOSE 22
+
+CMD ["/usr/sbin/sshd", "-D"]

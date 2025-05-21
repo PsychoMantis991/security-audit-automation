@@ -1,0 +1,120 @@
+{
+  "timeout": 180,
+  "msf_host": "127.0.0.1",
+  "msf_port": 55553,
+  "msf_user": "msf",
+  "msf_pass": "msf",
+  "cleanup_techniques": [
+    "logs_deletion",
+    "file_timestomp",
+    "command_history",
+    "temp_files",
+    "session_artifacts",
+    "registry_keys"
+  ],
+  "log_patterns": {
+    "windows": [
+      "Security",
+      "System",
+      "Application",
+      "PowerShell",
+      "Windows Defender",
+      "Microsoft-Windows-Sysmon/Operational",
+      "Microsoft-Windows-PowerShell/Operational",
+      "Microsoft-Windows-WMI-Activity/Operational"
+    ],
+    "linux": [
+      "auth.log",
+      "syslog",
+      "messages",
+      "secure",
+      "audit.log",
+      "wtmp",
+      "btmp",
+      "lastlog",
+      "apache2/access.log",
+      "apache2/error.log",
+      "nginx/access.log",
+      "nginx/error.log"
+    ]
+  },
+  "temp_directories": {
+    "windows": [
+      "C:\\Windows\\Temp",
+      "C:\\Users\\*\\AppData\\Local\\Temp",
+      "C:\\Users\\*\\Downloads",
+      "C:\\Windows\\Prefetch",
+      "C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\Temp"
+    ],
+    "linux": [
+      "/tmp",
+      "/var/tmp",
+      "/dev/shm",
+      "/var/log/apache2",
+      "/var/log/nginx",
+      "/var/log/httpd"
+    ]
+  },
+  "registry_keys": [
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU",
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\TypedPaths",
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ComDlg32\\OpenSavePidlMRU",
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ComDlg32\\LastVisitedPidlMRU",
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist",
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RecentDocs",
+    "HKLM\\SYSTEM\\CurrentControlSet\\Enum\\USBSTOR",
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings\\Connections"
+  ],
+  "file_timestamps": {
+    "reference_files": {
+      "windows": [
+        "C:\\Windows\\System32\\notepad.exe",
+        "C:\\Windows\\System32\\calc.exe",
+        "C:\\Windows\\explorer.exe"
+      ],
+      "linux": [
+        "/bin/bash",
+        "/bin/ls",
+        "/bin/cp"
+      ]
+    },
+    "target_files": {
+      "windows": [
+        "C:\\Windows\\System32\\cmd.exe",
+        "C:\\Windows\\System32\\powershell.exe",
+        "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "C:\\Windows\\System32\\whoami.exe",
+        "C:\\Windows\\System32\\net.exe",
+        "C:\\Windows\\System32\\netstat.exe",
+        "C:\\Windows\\System32\\ipconfig.exe"
+      ],
+      "linux": [
+        "/bin/bash",
+        "/bin/sh",
+        "/usr/bin/ssh",
+        "/bin/ls",
+        "/usr/bin/find",
+        "/bin/cp",
+        "/bin/mv"
+      ]
+    }
+  },
+  "shell_history": {
+    "windows": [
+      "PowerShell_history.txt",
+      "ConsoleHost_history.txt"
+    ],
+    "linux": [
+      ".bash_history",
+      ".zsh_history",
+      ".history",
+      ".sh_history"
+    ]
+  },
+  "advanced_techniques": {
+    "alternate_data_streams": true,
+    "unlink_during_execution": true,
+    "memory_only_execution": true,
+    "antiforensics": true
+  }
+}

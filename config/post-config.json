@@ -1,0 +1,93 @@
+{
+  "timeout": 240,
+  "msf_host": "127.0.0.1",
+  "msf_port": 55553,
+  "msf_user": "msf",
+  "msf_pass": "msf",
+  "evasion_techniques": [
+    "sleep_delays",
+    "memory_only",
+    "timestomp"
+  ],
+  "loot_directory": "/opt/pentest/reports/loot",
+  "evidence_directory": "/opt/pentest/reports/evidence",
+  "cleanup_files": true,
+  "max_file_size_mb": 10,
+  "post_modules": {
+    "privilege_escalation": true,
+    "credential_harvesting": true,
+    "lateral_movement": true,
+    "persistence": false
+  },
+  "privilege_escalation": {
+    "windows": [
+      "post/windows/escalate/bypassuac_fodhelper",
+      "post/windows/escalate/getsystem",
+      "post/windows/escalate/ms16_032_secondary_logon_handle_privesc",
+      "post/windows/escalate/ms16_135_service",
+      "post/windows/escalate/droplnk"
+    ],
+    "linux": [
+      "post/linux/escalate/cve_2021_4034_pwnkit_lpe_pkexec",
+      "post/linux/escalate/docker_daemon_privilege_escalation",
+      "post/linux/escalate/screen_exploit",
+      "post/linux/escalate/perf_swevent"
+    ]
+  },
+  "credential_harvest": {
+    "windows": [
+      "post/windows/gather/credentials/credential_collector",
+      "post/windows/gather/smart_hashdump",
+      "post/windows/gather/enum_chrome",
+      "post/windows/gather/credentials/mimikatz",
+      "post/windows/gather/credentials/enum_cred_store",
+      "post/windows/gather/credentials/enum_laps"
+    ],
+    "linux": [
+      "post/linux/gather/hashdump",
+      "post/linux/gather/enum_users_history",
+      "post/linux/gather/enum_configs",
+      "post/multi/gather/ssh_creds",
+      "post/linux/gather/enum_psk"
+    ]
+  },
+  "lateral_movement": {
+    "windows": [
+      "exploit/windows/smb/psexec",
+      "exploit/windows/winrm/winrm_script_exec",
+      "exploit/windows/local/wmi",
+      "exploit/windows/smb/smb_delivery"
+    ],
+    "linux": [
+      "exploit/multi/ssh/sshexec",
+      "exploit/linux/local/ptrace_sudo_token_priv_esc"
+    ]
+  },
+  "file_collection": {
+    "windows": [
+      "C:\\Users\\*\\Desktop\\*.doc*",
+      "C:\\Users\\*\\Desktop\\*.xls*",
+      "C:\\Users\\*\\Desktop\\*.pdf",
+      "C:\\Users\\*\\Desktop\\*pass*",
+      "C:\\Users\\*\\Desktop\\*cred*",
+      "C:\\Users\\*\\Documents\\*.kdbx",
+      "C:\\Users\\*\\Documents\\*pass*",
+      "C:\\ProgramData\\*config*",
+      "C:\\Program Files\\*\\*config*.xml",
+      "C:\\Program Files (x86)\\*\\*config*.xml",
+      "C:\\inetpub\\wwwroot\\web.config"
+    ],
+    "linux": [
+      "/home/*/.ssh/id_*",
+      "/home/*/.bash_history",
+      "/home/*/*.kdbx",
+      "/home/*/*.key",
+      "/etc/shadow",
+      "/etc/passwd",
+      "/etc/ssh/ssh_config",
+      "/etc/ssh/sshd_config",
+      "/var/www/*/config*",
+      "/var/www/html/wp-config.php"
+    ]
+  }
+}

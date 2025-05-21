@@ -1,0 +1,226 @@
+{
+  "name": "pentest-automation",
+  "id": "pentest-automation",
+  "services": [
+    {
+      "id": "n8n",
+      "type": "app",
+      "image": "n8nio/n8n:latest",
+      "env": [
+        {
+          "key": "N8N_PORT",
+          "value": "5678"
+        },
+        {
+          "key": "N8N_PROTOCOL",
+          "value": "http"
+        },
+        {
+          "key": "N8N_HOST",
+          "value": "localhost"
+        },
+        {
+          "key": "DB_TYPE",
+          "value": "postgresdb"
+        },
+        {
+          "key": "DB_POSTGRESDB_HOST",
+          "value": "postgres"
+        },
+        {
+          "key": "DB_POSTGRESDB_PORT",
+          "value": "5432"
+        },
+        {
+          "key": "DB_POSTGRESDB_DATABASE",
+          "value": "n8n"
+        },
+        {
+          "key": "DB_POSTGRESDB_USER",
+          "value": "n8n"
+        },
+        {
+          "key": "DB_POSTGRESDB_PASSWORD",
+          "value": "pentestpass"
+        },
+        {
+          "key": "N8N_ENCRYPTION_KEY",
+          "value": "pentestencryptionkey"
+        },
+        {
+          "key": "REDIS_HOST",
+          "value": "redis"
+        },
+        {
+          "key": "WEBHOOK_URL",
+          "value": "http://localhost:5678/"
+        },
+        {
+          "key": "N8N_LOG_LEVEL",
+          "value": "debug"
+        },
+        {
+          "key": "NODE_FUNCTION_ALLOW_EXTERNAL",
+          "value": "true"
+        }
+      ],
+      "volumes": [
+        {
+          "type": "volume",
+          "source": "n8n_data",
+          "target": "/home/node/.n8n"
+        },
+        {
+          "type": "bind",
+          "source": "/opt/pentest/scripts",
+          "target": "/home/node/scripts"
+        },
+        {
+          "type": "bind",
+          "source": "/opt/pentest/workflows",
+          "target": "/home/node/workflows"
+        },
+        {
+          "type": "bind",
+          "source": "/opt/pentest/templates",
+          "target": "/home/node/templates"
+        },
+        {
+          "type": "bind",
+          "source": "/opt/pentest/reports",
+          "target": "/home/node/reports"
+        },
+        {
+          "type": "bind",
+          "source": "/opt/pentest/config",
+          "target": "/home/node/config"
+        }
+      ],
+      "ports": [
+        {
+          "published": 5678,
+          "target": 5678
+        }
+      ],
+      "restart": "always",
+      "depends_on": [
+        "postgres",
+        "redis",
+        "kali",
+        "reporting"
+      ]
+    },
+    {
+      "id": "postgres",
+      "type": "app",
+      "image": "postgres:13",
+      "env": [
+        {
+          "key": "POSTGRES_DB",
+          "value": "n8n"
+        },
+        {
+          "key": "POSTGRES_USER",
+          "value": "n8n"
+        },
+        {
+          "key": "POSTGRES_PASSWORD",
+          "value": "pentestpass"
+        }
+      ],
+      "volumes": [
+        {
+          "type": "volume",
+          "source": "postgres_data",
+          "target": "/var/lib/postgresql/data"
+        }
+      ],
+      "restart": "always",
+      "healthcheck": {
+        "test": ["CMD-SHELL", "pg_isready -U n8n"],
+        "interval": "10s",
+        "timeout": "5s",
+        "retries": 5
+      }
+    },
+    {
+      "id": "redis",
+      "type": "app",
+      "image": "redis:6-alpine",
+      "command": "redis-server --requirepass pentestredispass",
+      "volumes": [
+        {
+          "type": "volume",
+          "source": "redis_data",
+          "target": "/data"
+        }
+      ],
+      "restart": "always",
+      "healthcheck": {
+        "test": ["CMD", "redis-cli", "ping"],
+        "interval": "10s",
+        "timeout": "5s",
+        "retries": 5
+      }
+    },
+    {
+      "id": "kali",
+      "type": "app",
+      "build": {
+        "context": ".",
+        "dockerfile": "Dockerfile.kali"
+      },
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/opt/pentest/scripts",
+          "target": "/opt/pentest/scripts"
+        },
+        {
+          "type": "bind",
+          "source": "/opt/pentest/reports",
+          "target": "/opt/pentest/reports"
+        },
+        {
+          "type": "bind",
+          "source": "/opt/pentest/config",
+          "target": "/opt/pentest/config"
+        },
+        {
+          "type": "bind",
+          "source": "/opt/pentest/temp",
+          "target": "/opt/pentest/temp"
+        }
+      ],
+      "cap_add": ["NET_ADMIN", "SYS_PTRACE"],
+      "security_opt": ["seccomp:unconfined"],
+      "restart": "always"
+    },
+    {
+      "id": "reporting",
+      "type": "app",
+      "build": {
+        "context": ".",
+        "dockerfile": "Dockerfile.reporting"
+      },
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/opt/pentest/templates",
+          "target": "/opt/reporting/templates"
+        },
+        {
+          "type": "bind",
+          "source": "/opt/pentest/reports",
+          "target": "/opt/reporting/reports"
+        },
+        {
+          "type": "bind",
+          "source": "/opt/pentest/config",
+          "target": "/opt/reporting/config"
+        }
+      ],
+      "restart": "always"
+    }
+  ]
+}

@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Assessment Executive Report</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+        
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --text-color: #333;
+            --light-bg: #f5f5f5;
+            --border-color: #ddd;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            color: var(--text-color);
+            line-height: 1.6;
+            background-color: white;
+            padding: 0;
+            font-size: 14px;
+        }
+        
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            padding: 40px 0 30px;
+            text-align: center;
+            border-bottom: 2px solid var(--primary-color);
+            position: relative;
+        }
+        
+        .header:after {
+            content: "";
+            position: absolute;
+            bottom: -5px;
+            left: 30%;
+            right: 30%;
+            height: 3px;
+            background-color: var(--secondary-color);
+        }
+        
+        .logo {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 28px;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        h2 {
+            font-size: 22px;
+            color: var(--primary-color);
+            margin: 25px 0 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 500;
+        }
+        
+        h3 {
+            font-size: 18px;
+            color: var(--primary-color);
+            margin: 20px 0 10px;
+            font-weight: 500;
+        }
+        
+        p {
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+        
+        .meta-info {
+            display: flex;
+            justify-content: space-between;
+            margin: 30px 0;
+            padding: 15px;
+            background-color: var(--light-bg);
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .meta-info div {
+            flex: 1;
+            padding: 0 15px;
+        }
+        
+        .meta-info h4 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .meta-info p {
+            font-size: 16px;
+            font-weight: 400;
+        }
+        
+        .section {
+            margin: 30px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 500;
+        }
+        
+        tr:nth-child(even) {
+            background-color: var(--light-bg);
+        }
+        
+        tr:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+        
+        .risk-summary {
+            display: flex;
+            justify-content: space-between;
+            margin: 30px 0;
+        }
+        
+        .risk-box {
+            flex: 1;
+            text-align: center;
+            padding: 20px;
+            margin: 0 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .risk-high {
+            background-color: rgba(231, 76, 60, 0.1);
+            border-left: 4px solid var(--accent-color);
+        }
+        
+        .risk-medium {
+            background-color: rgba(243, 156, 18, 0.1);
+            border-left: 4px solid var(--warning-color);
+        }
+        
+        .risk-low {
+            background-color: rgba(46, 204, 113, 0.1);
+            border-left: 4px solid var(--success-color);
+        }
+        
+        .risk-number {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .risk-high .risk-number {
+            color: var(--accent-color);
+        }
+        
+        .risk-medium .risk-number {
+            color: var(--warning-color);
+        }
+        
+        .risk-low .risk-number {
+            color: var(--success-color);
+        }
+        
+        .risk-label {
+            font-size: 16px;
+            font-weight: 500;
+            color: #666;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            color: white;
+        }
+        
+        .badge-high {
+            background-color: var(--accent-color);
+        }
+        
+        .badge-medium {
+            background-color: var(--warning-color);
+        }
+        
+        .badge-low {
+            background-color: var(--success-color);
+        }
+        
+        .badge-info {
+            background-color: var(--secondary-color);
+        }
+        
+        .finding-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-left: 4px solid #ddd;
+        }
+        
+        .finding-high {
+            border-left-color: var(--accent-color);
+            background-color: rgba(231, 76, 60, 0.05);
+        }
+        
+        .finding-medium {
+            border-left-color: var(--warning-color);
+            background-color: rgba(243, 156, 18, 0.05);
+        }
+        
+        .finding-low {
+            border-left-color: var(--success-color);
+            background-color: rgba(46, 204, 113, 0.05);
+        }
+        
+        .finding-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .finding-title {
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        .finding-detail {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .recommendation {
+            padding: 15px;
+            margin: 10px 0;
+            background-color: var(--light-bg);
+            border-radius: 5px;
+            border-left: 4px solid var(--secondary-color);
+        }
+        
+        .chart-container {
+            height: 300px;
+            margin: 30px 0;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        @media print {
+            body {
+                font-size: 11pt;
+            }
+            
+            h1 {
+                font-size: 18pt;
+            }
+            
+            h2 {
+                font-size: 16pt;
+            }
+            
+            h3 {
+                font-size: 14pt;
+            }
+            
+            .container {
+                max-width: none;
+                padding: 0;
+            }
+            
+            .chart-container {
+                max-height: 200px;
+                page-break-inside: avoid;
+            }
+            
+            table {
+                page-break-inside: auto;
+            }
+            
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+            
+            .finding-item {
+                page-break-inside: avoid;
+            }
+            
+            .meta-info, .risk-summary {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <!-- Placeholder for logo -->
+            <!-- <img src="logo.png" alt="Company Logo" class="logo"> -->
+            <h1>Security Assessment Executive Report</h1>
+            <p class="subtitle">Confidential Information - For Management Review Only</p>
+        </div>
+        
+        <div class="meta-info">
+            <div>
+                <h4>Target Scope</h4>
+                <p>{{target_scope}}</p>
+            </div>
+            <div>
+                <h4>Assessment Date</h4>
+                <p>{{assessment_date}}</p>
+            </div>
+            <div>
+                <h4>Report ID</h4>
+                <p>{{report_id}}</p>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Executive Summary</h2>
+            <p>{{executive_summary}}</p>
+            
+            <div class="risk-summary">
+                <div class="risk-box risk-high">
+                    <div class="risk-number">{{high_findings}}</div>
+                    <div class="risk-label">Critical/High Findings</div>
+                </div>
+                <div class="risk-box risk-medium">
+                    <div class="risk-number">{{medium_findings}}</div>
+                    <div class="risk-label">Medium Findings</div>
+                </div>
+                <div class="risk-box risk-low">
+                    <div class="risk-number">{{low_findings}}</div>
+                    <div class="risk-label">Low Findings</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Assessment Overview</h2>
+            <p>{{assessment_overview}}</p>
+            
+            <h3>Methodology</h3>
+            <p>{{methodology}}</p>
+            
+            <h3>Scope</h3>
+            <p>The security assessment covered the following assets:</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Asset</th>
+                        <th>Type</th>
+                        <th>IP/Location</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each assets}}
+                    <tr>
+                        <td>{{name}}</td>
+                        <td>{{type}}</td>
+                        <td>{{location}}</td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>Key Findings Summary</h2>
+            
+            <div class="chart-container">
+                <!-- Placeholder for vulnerabilities chart -->
+                <!-- Will be replaced with actual chart via JavaScript -->
+            </div>
+            
+            <h3>High Risk Findings</h3>
+            {{#each high_risk_findings}}
+            <div class="finding-item finding-high">
+                <div class="finding-header">
+                    <span class="finding-title">{{title}}</span>
+                    <span class="badge badge-high">High Risk</span>
+                </div>
+                <p class="finding-detail">{{description}}</p>
+                <div class="recommendation">
+                    <strong>Recommendation:</strong> {{recommendation}}
+                </div>
+            </div>
+            {{/each}}
+            
+            <h3>Medium Risk Findings</h3>
+            {{#each medium_risk_findings}}
+            <div class="finding-item finding-medium">
+                <div class="finding-header">
+                    <span class="finding-title">{{title}}</span>
+                    <span class="badge badge-medium">Medium Risk</span>
+                </div>
+                <p class="finding-detail">{{description}}</p>
+                <div class="recommendation">
+                    <strong>Recommendation:</strong> {{recommendation}}
+                </div>
+            </div>
+            {{/each}}
+            
+            <h3>Low Risk Findings</h3>
+            {{#each low_risk_findings}}
+            <div class="finding-item finding-low">
+                <div class="finding-header">
+                    <span class="finding-title">{{title}}</span>
+                    <span class="badge badge-low">Low Risk</span>
+                </div>
+                <p class="finding-detail">{{description}}</p>
+                <div class="recommendation">
+                    <strong>Recommendation:</strong> {{recommendation}}
+                </div>
+            </div>
+            {{/each}}
+        </div>
+        
+        <div class="section">
+            <h2>Risk Analysis</h2>
+            <p>{{risk_analysis}}</p>
+            
+            <h3>Risk Heatmap</h3>
+            <div class="chart-container">
+                <!-- Placeholder for risk heatmap -->
+                <!-- Will be replaced with actual heatmap via JavaScript -->
+            </div>
+            
+            <h3>Impact Assessment</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Finding Category</th>
+                        <th>Business Impact</th>
+                        <th>Remediation Priority</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each impact_assessment}}
+                    <tr>
+                        <td>{{category}}</td>
+                        <td>{{impact}}</td>
+                        <td>{{priority}}</td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>Remediation Roadmap</h2>
+            <p>{{remediation_intro}}</p>
+            
+            <h3>Immediate Actions (0-30 days)</h3>
+            <ul>
+                {{#each immediate_actions}}
+                <li>{{this}}</li>
+                {{/each}}
+            </ul>
+            
+            <h3>Short-term Actions (30-90 days)</h3>
+            <ul>
+                {{#each shortterm_actions}}
+                <li>{{this}}</li>
+                {{/each}}
+            </ul>
+            
+            <h3>Long-term Actions (90+ days)</h3>
+            <ul>
+                {{#each longterm_actions}}
+                <li>{{this}}</li>
+                {{/each}}
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>Conclusion</h2>
+            <p>{{conclusion}}</p>
+        </div>
+        
+        <div class="footer">
+            <p>Confidential - {{company_name}} Security Assessment Report</p>
+            <p>Generated on {{generation_date}} | Report ID: {{report_id}}</p>
+        </div>
+    </div>
+    
+    <script>
+        // Placeholder for chart rendering code
+        // In actual implementation, this would use a charting library like Chart.js
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // This is a simplified placeholder. In a real report, you would use 
+            // actual charting libraries to render charts based on assessment data.
+            
+            console.log('Report loaded successfully. Charts would render here.');
+        });
+    </script>
+</body>
+</html>

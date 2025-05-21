@@ -1,0 +1,735 @@
+{
+  "name": "02-Explotacion-Principal",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "# Flujo de Explotación Automatizada\n\nEste workflow ejecuta la fase de explotación, siguiendo estos pasos:\n\n1. Automatización de explotación de vulnerabilidades\n2. Post-explotación y escalada de privilegios\n3. Evasión de EDR\n4. Limpieza de evidencias\n\nPuede configurar los objetivos y opciones en el formulario inicial."
+      },
+      "id": "f44c0a00-5c23-4e82-987e-88e0bd69c1fe",
+      "name": "Descripción del Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        240,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "Configuración de Explotación",
+        "formFields": {
+          "values": [
+            {
+              "fieldName": "target",
+              "fieldTitle": "Objetivo",
+              "fieldType": "string",
+              "fieldPlaceholder": "IP del objetivo",
+              "fieldDefaultValue": "192.168.1.1",
+              "fieldRequired": true
+            },
+            {
+              "fieldName": "intensity",
+              "fieldTitle": "Intensidad de Explotación",
+              "fieldType": "options",
+              "fieldOptions": "low:Baja,medium:Media,high:Alta",
+              "fieldDefaultValue": "medium",
+              "fieldRequired": true
+            },
+            {
+              "fieldName": "evasion",
+              "fieldTitle": "Técnicas de Evasión",
+              "fieldType": "multiOptions",
+              "fieldOptions": "amsi_bypass:Bypass AMSI,etw_bypass:Bypass ETW,payload_obfuscation:Ofuscación de Payload,memory_patching:Parcheo en Memoria,sleep_obfuscation:Ofuscación de Sleep,syscall_manipulation:Manipulación de Syscalls",
+              "fieldDefaultValue": "amsi_bypass,payload_obfuscation",
+              "fieldRequired": false
+            },
+            {
+              "fieldName": "cleanup",
+              "fieldTitle": "Limpieza de Evidencias",
+              "fieldType": "multiOptions",
+              "fieldOptions": "logs_deletion:Eliminación de Logs,command_history:Historial de Comandos,temp_files:Archivos Temporales,registry_keys:Claves de Registro,file_timestomp:Timestomp de Archivos,session_artifacts:Artefactos de Sesión",
+              "fieldDefaultValue": "logs_deletion,command_history,temp_files",
+              "fieldRequired": false
+            }
+          ]
+        }
+      },
+      "id": "b87af55d-b243-463a-9f4a-3adbbe231e9e",
+      "name": "Formulario de Configuración",
+      "type": "n8n-nodes-base.form",
+      "position": [
+        460,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ !!$node[\"Formulario de Configuración\"].json[\"target\"] }}",
+              "value2": true
+            }
+          ],
+          "string": [
+            {
+              "value1": "={{ $node[\"Formulario de Configuración\"].json[\"target\"] }}",
+              "operation": "regex",
+              "value2": "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$",
+              "caseSensitive": false
+            }
+          ]
+        }
+      },
+      "id": "74a5e1f1-f5f0-4de7-848e-a41ce9ab7a0e",
+      "name": "Validar IP",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        680,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "filePath": "/opt/pentest/temp/vuln_{{ $json.target }}.json"
+      },
+      "id": "bc1c9b01-b8a1-4421-ac78-4c31bbf651d2",
+      "name": "Verificar Archivo de Vulnerabilidades",
+      "type": "n8n-nodes-base.fileExists",
+      "position": [
+        900,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "content": "=## ⚠️ Error de Validación\n\n**Objetivo**: {{ $json.target }}\n**Mensaje**: La dirección IP proporcionada no es válida. Por favor, ingrese una dirección IPv4 en formato correcto.\n\n**Formato esperado**: 192.168.1.1",
+        "outputDataSource": "input"
+      },
+      "id": "5b8bf76c-d211-42ab-9ea2-0b92a02e7c8f",
+      "name": "Error de Validación",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        900,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.exists }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "3db8dd0c-8fac-43e1-b71c-4f2ab6cdd1e2",
+      "name": "Verificar Existencia",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        1120,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "path": "/opt/pentest/temp/vuln_{{ $json.target }}.json"
+      },
+      "id": "4fc56f05-9c85-46ac-a9a2-09fc25e1aa63",
+      "name": "Leer Archivo de Vulnerabilidades",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "position": [
+        1340,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "content": "=## ⚠️ Archivo de Vulnerabilidades no Encontrado\n\n**Objetivo**: {{ $json.target }}\n**Mensaje**: No se encontró el archivo de vulnerabilidades para este objetivo. Por favor, ejecute primero el workflow '01-Recon-Enumeracion'.",
+        "responseCode": 404
+      },
+      "id": "df7c2642-de91-4fa7-bcf3-f19e3eee3075",
+      "name": "Error de Archivo",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        1340,
+        280
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "62d56c0a-3a8c-4723-9fed-83dee8e0e0bd",
+      "name": "Convertir Vulnerabilidades a JSON",
+      "type": "n8n-nodes-base.moveBinaryData",
+      "position": [
+        1560,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "path": "/opt/pentest/temp/enum_{{ $json.target }}.json"
+      },
+      "id": "1f54c5bb-7c13-42cf-898c-95ce986cdd12",
+      "name": "Leer Archivo de Enumeración",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "position": [
+        1780,
+        100
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "f15acdce-e04d-4d5c-8ff5-46d92af1f5dc",
+      "name": "Convertir Enumeración a JSON",
+      "type": "n8n-nodes-base.moveBinaryData",
+      "position": [
+        2000,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combinar datos de entrada\nconst vulnerabilidades = $node[\"Convertir Vulnerabilidades a JSON\"].json;\nconst enumeracion = $node[\"Convertir Enumeración a JSON\"].json;\nconst formData = $node[\"Formulario de Configuración\"].json;\n\n// Crear objeto combinado\nreturn {\n  ...formData,\n  vulnerabilidades: vulnerabilidades,\n  enumeracion: enumeracion\n};"
+      },
+      "id": "2bd15a3a-e3ed-4af9-8324-d9d4cc9ee0fe",
+      "name": "Preparar Datos",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        2220,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "command": "/opt/pentest/scripts/exploit-dispatcher.py -t {{ $json.target }} -v /opt/pentest/temp/vuln_{{ $json.target }}.json -s /opt/pentest/temp/enum_{{ $json.target }}.json -o /opt/pentest/temp/exploit_{{ $json.target }}.json --intensity {{ $json.intensity }}",
+        "executionMode": "auto"
+      },
+      "id": "f1a3a4d9-2c3a-4e1a-8bee-1a25fb0e0a4c",
+      "name": "Ejecutar Explotación",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [
+        2440,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "path": "/opt/pentest/temp/exploit_{{ $json.target }}.json"
+      },
+      "id": "5c80e2cc-9bac-4efc-9fa2-72cca04e3359",
+      "name": "Leer Resultados de Explotación",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "position": [
+        2660,
+        100
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "4a550c64-3be0-449d-8989-ea2c9b3f4a79",
+      "name": "Convertir a JSON",
+      "type": "n8n-nodes-base.moveBinaryData",
+      "position": [
+        2880,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.successful_exploits }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "f789c9af-2b47-4f05-97d5-0d8b2e0fbf8d",
+      "name": "Verificar Éxito",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        3100,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtener la primera sesión exitosa\nconst exploitResults = $input.item;\nlet sessionId = null;\n\nif (exploitResults.exploits && Array.isArray(exploitResults.exploits)) {\n  for (const exploit of exploitResults.exploits) {\n    if (exploit.success && exploit.details && exploit.details.session_id) {\n      sessionId = exploit.details.session_id;\n      break;\n    }\n  }\n}\n\nreturn {\n  ...exploitResults,\n  session_id: sessionId,\n  evasion: $node[\"Formulario de Configuración\"].json.evasion,\n  cleanup: $node[\"Formulario de Configuración\"].json.cleanup\n};"
+      },
+      "id": "e22ffb51-63a2-4a02-b50b-8c47bbb5cc9b",
+      "name": "Extraer Sesión",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        3320,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "content": "=## ❌ Explotación Fallida\n\n**Objetivo**: {{ $json.target }}\n**Intensidad**: {{ $json.intensity }}\n**Resultado**: No se logró explotar ninguna vulnerabilidad en el objetivo.\n\n**Detalles**: {{ $json.message || 'No se pudieron explotar las vulnerabilidades encontradas' }}\n\n### 📋 Recomendaciones\n\n1. Intente ejecutar nuevamente con una intensidad mayor\n2. Verifique las vulnerabilidades detectadas manualmente\n3. Considere técnicas de explotación alternativas",
+        "outputDataSource": "input"
+      },
+      "id": "0a90a4a3-c841-4a10-8c1f-b9bc92cc32e8",
+      "name": "Reporte de Fallo",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        3320,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "command": "/opt/pentest/scripts/post-exploitation.py -s {{ $json.session_id }} -o /opt/pentest/temp/post_{{ $json.target }}.json",
+        "executionMode": "auto"
+      },
+      "id": "a74c5e7f-fe9a-4f0d-a3e9-4ce5d6c35f94",
+      "name": "Ejecutar Post-Explotación",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [
+        3540,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "path": "/opt/pentest/temp/post_{{ $json.target }}.json"
+      },
+      "id": "c3d6544b-3a0a-4bd9-98bc-0a152d63cbd5",
+      "name": "Leer Resultados de Post-Explotación",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "position": [
+        3760,
+        20
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "e83d34a6-6c70-4539-8fc5-e0f9d9d79be2",
+      "name": "Convertir a JSON",
+      "type": "n8n-nodes-base.moveBinaryData",
+      "position": [
+        3980,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "command": "/opt/pentest/scripts/edr-evasion.py -s {{ $json.session_id }} -o /opt/pentest/temp/evasion_{{ $json.target }}.json --techniques {{ $json.evasion }}",
+        "executionMode": "auto"
+      },
+      "id": "1e2c0f57-0e06-4a03-8177-50e3c3bc0b1d",
+      "name": "Ejecutar Evasión EDR",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [
+        4200,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "path": "/opt/pentest/temp/evasion_{{ $json.target }}.json"
+      },
+      "id": "d546cf7a-dcad-4bb8-a57a-0e8e0dca2b01",
+      "name": "Leer Resultados de Evasión",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "position": [
+        4420,
+        20
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "71b5312a-7923-49d5-b9c8-efbd01b5b7ce",
+      "name": "Convertir a JSON",
+      "type": "n8n-nodes-base.moveBinaryData",
+      "position": [
+        4640,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "command": "/opt/pentest/scripts/evidence-cleanup.py -s {{ $json.session_id }} -o /opt/pentest/temp/cleanup_{{ $json.target }}.json --techniques {{ $json.cleanup }}",
+        "executionMode": "auto"
+      },
+      "id": "0d98da03-4dbc-4db8-86f0-8d8be5ae88e1",
+      "name": "Ejecutar Limpieza",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [
+        4860,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "path": "/opt/pentest/temp/cleanup_{{ $json.target }}.json"
+      },
+      "id": "5a3c7e8d-79dd-45dc-8ba4-a7a5b5a63c9c",
+      "name": "Leer Resultados de Limpieza",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "position": [
+        5080,
+        20
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "d9a28c32-c0ee-4e8d-87ac-1cf00b3ebbaf",
+      "name": "Convertir a JSON",
+      "type": "n8n-nodes-base.moveBinaryData",
+      "position": [
+        5300,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generar reporte completo\nconst exploit = $node[\"Convertir a JSON\"].json;\nconst post = $node[\"Convertir a JSON1\"].json;\nconst evasion = $node[\"Convertir a JSON2\"].json;\nconst cleanup = $node[\"Convertir a JSON3\"].json;\n\n// Generar resumen de sesión\nconst sessionId = post.session_id;\nlet privilegeEscalation = 'No intentado';\nlet credentialsFound = 0;\nlet lateralMovement = 'No intentado';\nlet evasionSuccess = 'Desconocido';\nlet cleanupSuccess = 'Desconocido';\n\n// Verificar escalada de privilegios\nif (post.privilege_escalation && post.privilege_escalation.success) {\n  privilegeEscalation = 'Exitoso';\n} else if (post.privilege_escalation) {\n  privilegeEscalation = 'Fallido';\n}\n\n// Contar credenciales encontradas\nif (post.credentials && post.credentials.credentials_found) {\n  credentialsFound = post.credentials.credentials_found.length;\n}\n\n// Verificar movimiento lateral\nif (post.lateral_movement && post.lateral_movement.success) {\n  lateralMovement = 'Exitoso';\n} else if (post.lateral_movement) {\n  lateralMovement = 'Fallido';\n}\n\n// Verificar éxito de evasión\nif (evasion.success) {\n  evasionSuccess = 'Exitoso';\n} else {\n  evasionSuccess = 'Fallido';\n}\n\n// Verificar éxito de limpieza\nif (cleanup.success) {\n  cleanupSuccess = 'Exitoso';\n} else {\n  cleanupSuccess = 'Fallido';\n}\n\n// Generar reporte\nreturn {\n  target: exploit.target,\n  timestamp: new Date().toISOString(),\n  session_id: sessionId,\n  exploitation: {\n    success: exploit.successful_exploits > 0,\n    exploits_attempted: exploit.exploits ? exploit.exploits.length : 0,\n    successful_exploits: exploit.successful_exploits\n  },\n  post_exploitation: {\n    privilege_escalation: privilegeEscalation,\n    credentials_found: credentialsFound,\n    lateral_movement: lateralMovement\n  },\n  evasion: {\n    success: evasionSuccess,\n    techniques_applied: evasion.applied_techniques ? evasion.applied_techniques.length : 0\n  },\n  cleanup: {\n    success: cleanupSuccess,\n    logs_cleaned: cleanup.logs_cleanup ? cleanup.logs_cleanup.logs_cleaned.length : 0,\n    files_cleaned: cleanup.temp_files_cleanup ? cleanup.temp_files_cleanup.files_cleaned.length : 0\n  },\n  raw_data: {\n    exploit: exploit,\n    post: post,\n    evasion: evasion,\n    cleanup: cleanup\n  }\n};"
+      },
+      "id": "b2c5b5ff-49b3-486a-a63e-5a27e6a40795",
+      "name": "Generar Reporte",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        5520,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "content": "=# 🎯 Reporte de Explotación: {{ $json.target }}\n\n## ✅ Resumen de Operaciones\n\n| Fase | Estado | Detalles |\n|------|--------|----------|\n| **Explotación** | {{ $json.exploitation.success ? '✅ Exitoso' : '❌ Fallido' }} | {{ $json.exploitation.successful_exploits }} de {{ $json.exploitation.exploits_attempted }} intentos exitosos |\n| **Escalada de Privilegios** | {{ $json.post_exploitation.privilege_escalation === 'Exitoso' ? '✅ Exitoso' : ($json.post_exploitation.privilege_escalation === 'Fallido' ? '❌ Fallido' : '⚠️ No intentado') }} | Sesión ID: {{ $json.session_id }} |\n| **Recolección de Credenciales** | {{ $json.post_exploitation.credentials_found > 0 ? '✅ Exitoso' : '⚠️ Sin resultados' }} | {{ $json.post_exploitation.credentials_found }} credenciales encontradas |\n| **Movimiento Lateral** | {{ $json.post_exploitation.lateral_movement === 'Exitoso' ? '✅ Exitoso' : ($json.post_exploitation.lateral_movement === 'Fallido' ? '❌ Fallido' : '⚠️ No intentado') }} | - |\n| **Evasión EDR** | {{ $json.evasion.success === 'Exitoso' ? '✅ Exitoso' : '❌ Fallido' }} | {{ $json.evasion.techniques_applied }} técnicas aplicadas |\n| **Limpieza de Evidencias** | {{ $json.cleanup.success === 'Exitoso' ? '✅ Exitoso' : '❌ Fallido' }} | {{ $json.cleanup.logs_cleaned }} logs y {{ $json.cleanup.files_cleaned }} archivos temporales eliminados |\n\n## 🔍 Detalles de Explotación\n\n{% if $json.raw_data.exploit.exploits %}{% for exploit in $json.raw_data.exploit.exploits %}{% if exploit.success %}✅ {{ exploit.vulnerability }} (Puerto {{ exploit.port }}): {{ exploit.message }}{% else %}❌ {{ exploit.vulnerability }} (Puerto {{ exploit.port }}): {{ exploit.message }}{% endif %}\n{% endfor %}{% endif %}\n\n## 🔑 Credenciales Descubiertas\n\n{% if $json.raw_data.post.credentials && $json.raw_data.post.credentials.credentials_found %}{% for cred in $json.raw_data.post.credentials.credentials_found %}* **{{ cred.username }}**: {{ cred.type === 'hash' ? '[Hash omitido]' : '[Contraseña omitida]' }} ({{ cred.source }})\n{% endfor %}{% else %}No se encontraron credenciales.{% endif %}\n\n## 📃 Informe Generado: {{ new Date().toISOString().split('T')[0] }}\n\nEl informe técnico completo está disponible en: `/opt/pentest/reports/{{ $json.target }}_report.json`",
+        "outputDataSource": "input"
+      },
+      "id": "fb5af62e-da20-4e52-962d-77584ce8b4b2",
+      "name": "Mostrar Reporte",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        5740,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "path": "/opt/pentest/reports/{{ $json.target }}_report.json",
+        "content": "={{ JSON.stringify($json, null, 2) }}",
+        "options": {
+          "writeMode": "overwrite"
+        }
+      },
+      "id": "6f6f4121-3c4f-48fa-8d54-6c8e851cdcf7",
+      "name": "Guardar Reporte JSON",
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "position": [
+        5740,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Descripción del Workflow": {
+      "main": [
+        [
+          {
+            "node": "Formulario de Configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formulario de Configuración": {
+      "main": [
+        [
+          {
+            "node": "Validar IP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar IP": {
+      "main": [
+        [
+          {
+            "node": "Verificar Archivo de Vulnerabilidades",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error de Validación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Archivo de Vulnerabilidades": {
+      "main": [
+        [
+          {
+            "node": "Verificar Existencia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Existencia": {
+      "main": [
+        [
+          {
+            "node": "Leer Archivo de Vulnerabilidades",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error de Archivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Archivo de Vulnerabilidades": {
+      "main": [
+        [
+          {
+            "node": "Convertir Vulnerabilidades a JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convertir Vulnerabilidades a JSON": {
+      "main": [
+        [
+          {
+            "node": "Leer Archivo de Enumeración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Archivo de Enumeración": {
+      "main": [
+        [
+          {
+            "node": "Convertir Enumeración a JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convertir Enumeración a JSON": {
+      "main": [
+        [
+          {
+            "node": "Preparar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Datos": {
+      "main": [
+        [
+          {
+            "node": "Ejecutar Explotación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar Explotación": {
+      "main": [
+        [
+          {
+            "node": "Leer Resultados de Explotación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Resultados de Explotación": {
+      "main": [
+        [
+          {
+            "node": "Convertir a JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convertir a JSON": {
+      "main": [
+        [
+          {
+            "node": "Verificar Éxito",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Éxito": {
+      "main": [
+        [
+          {
+            "node": "Extraer Sesión",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reporte de Fallo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Sesión": {
+      "main": [
+        [
+          {
+            "node": "Ejecutar Post-Explotación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar Post-Explotación": {
+      "main": [
+        [
+          {
+            "node": "Leer Resultados de Post-Explotación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Resultados de Post-Explotación": {
+      "main": [
+        [
+          {
+            "node": "Convertir a JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convertir a JSON1": {
+      "main": [
+        [
+          {
+            "node": "Ejecutar Evasión EDR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar Evasión EDR": {
+      "main": [
+        [
+          {
+            "node": "Leer Resultados de Evasión",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Resultados de Evasión": {
+      "main": [
+        [
+          {
+            "node": "Convertir a JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convertir a JSON2": {
+      "main": [
+        [
+          {
+            "node": "Ejecutar Limpieza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar Limpieza": {
+      "main": [
+        [
+          {
+            "node": "Leer Resultados de Limpieza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Resultados de Limpieza": {
+      "main": [
+        [
+          {
+            "node": "Convertir a JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convertir a JSON3": {
+      "main": [
+        [
+          {
+            "node": "Generar Reporte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar Reporte": {
+      "main": [
+        [
+          {
+            "node": "Mostrar Reporte",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Guardar Reporte JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

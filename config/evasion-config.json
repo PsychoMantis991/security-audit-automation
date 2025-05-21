@@ -1,0 +1,74 @@
+{
+  "timeout": 120,
+  "msf_host": "127.0.0.1",
+  "msf_port": 55553,
+  "msf_user": "msf",
+  "msf_pass": "msf",
+  "evasion_techniques": [
+    "amsi_bypass",
+    "etw_bypass",
+    "payload_obfuscation",
+    "memory_patching",
+    "sleep_obfuscation",
+    "encoding_layers",
+    "syscall_manipulation",
+    "sandbox_detection"
+  ],
+  "default_payload": "windows/meterpreter/reverse_https",
+  "lhost": "127.0.0.1",
+  "lport_range": [4000, 4500],
+  "temp_directory": "/tmp",
+  "obfuscation_iterations": 3,
+  "amsi_bypass_methods": [
+    "memory_patching",
+    "reflection",
+    "context_override"
+  ],
+  "etw_bypass_methods": [
+    "patching",
+    "unmanaged_code"
+  ],
+  "process_injection_methods": [
+    "createremotethread",
+    "ntqueueapcthread",
+    "process_hollowing",
+    "reflective_dll"
+  ],
+  "code_obfuscation": {
+    "string_encryption": true,
+    "control_flow_obfuscation": true,
+    "dead_code_insertion": true,
+    "variable_name_randomization": true,
+    "encrypt_pe_headers": true
+  },
+  "sandbox_detection": {
+    "check_system_resources": true,
+    "check_network_adapters": true,
+    "check_vm_artifacts": true,
+    "check_analysis_tools": true,
+    "check_user_interaction": true,
+    "sleep_evasion": true
+  },
+  "target_processes": {
+    "windows": [
+      "explorer.exe",
+      "svchost.exe",
+      "spoolsv.exe",
+      "rundll32.exe",
+      "regsvr32.exe"
+    ],
+    "linux": [
+      "bash",
+      "apache2",
+      "nginx",
+      "sshd",
+      "systemd"
+    ]
+  },
+  "syscall_patterns": {
+    "direct_syscalls": true,
+    "indirect_syscalls": true,
+    "syscall_id_manipulation": true,
+    "hook_bypass": true
+  }
+}

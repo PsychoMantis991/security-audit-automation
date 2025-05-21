@@ -1,0 +1,66 @@
+{
+  "threads": 3,
+  "timeout": 120,
+  "user_agents": [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Safari/605.1.15",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36 Edg/94.0.992.31",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/94.0.4606.76 Mobile/15E148 Safari/604.1"
+  ],
+  "nuclei_templates": [
+    "cves",
+    "vulnerabilities",
+    "exposures",
+    "misconfigurations"
+  ],
+  "evasion_techniques": [
+    "random_agent",
+    "rate_limiting",
+    "header_randomization"
+  ],
+  "scan_intensity": "medium",
+  "scan_modules": {
+    "web": true,
+    "network": true,
+    "databases": true,
+    "common_credentials": true
+  },
+  "custom_scripts": {
+    "web": [
+      "/opt/pentest/custom/web-checkers.py",
+      "/opt/pentest/custom/web-fuzzers.py"
+    ],
+    "network": [
+      "/opt/pentest/custom/network-checks.py"
+    ]
+  },
+  "vulnerability_categories": [
+    "rce",
+    "sqli",
+    "xss",
+    "ssrf",
+    "xxe",
+    "lfi",
+    "rfi",
+    "open_redirect",
+    "default_credentials",
+    "information_disclosure",
+    "crlf",
+    "csrf",
+    "misconfiguration",
+    "outdated_software"
+  ],
+  "reporting": {
+    "include_evidence": true,
+    "save_screenshots": true,
+    "include_references": true,
+    "generate_summary": true
+  },
+  "severity_thresholds": {
+    "critical": 9.0,
+    "high": 7.0,
+    "medium": 4.0,
+    "low": 1.0
+  }
+}
