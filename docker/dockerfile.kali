@@ -1,61 +1,181 @@
 FROM kalilinux/kali-rolling:latest
-
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Instalación de herramientas esenciales
+# === INSTALACIÓN DE HERRAMIENTAS BÁSICAS Y DEPENDENCIAS ===
 RUN apt-get update && apt-get install -y \
+    # Herramientas básicas del sistema
     python3 python3-pip python3-venv \
-    git curl wget \
-    nmap masscan \
+    git curl wget unzip \
+    jq nano vim tree \
+    iputils-ping dnsutils whois \
+    net-tools iproute2 arp-scan \
+    # Dependencias para compilación
+    libpcap-dev gcc build-essential libc6-dev \
+    # Herramientas de red y enumeración
+    nmap masscan zmap \
+    netcat-traditional socat \
+    # Herramientas de pentesting tradicionales
     metasploit-framework \
     exploitdb \
-    nikto \
-    dirb gobuster \
-    hydra \
+    nikto dirb gobuster \
+    hydra medusa \
     sqlmap \
     hashcat john \
+    # Herramientas de proxy y túneles
     proxychains4 tor \
-    openssh-server \
-    netcat-traditional socat \
-    jq nano vim \
-    iputils-ping dnsutils \
-    net-tools iproute2 \
-    ncat \
-    whois \
+    # SSH y servicios
+    openssh-server openssh-client \
+    # Herramientas de análisis
+    wireshark-common tcpdump \
+    binwalk foremost \
+    # Limpieza
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Instalación de Go para Nuclei y otras herramientas
+# === INSTALACIÓN DE PAQUETES PYTHON DESDE REPOSITORIOS (más estables) ===
+RUN apt-get update && apt-get install -y \
+    python3-requests \
+    python3-scapy \
+    python3-cryptography \
+    python3-paramiko \
+    python3-yaml \
+    python3-bs4 \
+    python3-numpy \
+    python3-pandas \
+    python3-sqlalchemy \
+    python3-redis \
+    python3-dotenv \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# === CONFIGURACIÓN DE GO ===
 RUN apt-get update && apt-get install -y golang-go && apt-get clean
 ENV GOPATH=/root/go
 ENV PATH=$PATH:/root/go/bin
+ENV GOPROXY=https://proxy.golang.org,direct
+ENV GOSUMDB=sum.golang.org
 
-# Instalación de Nuclei
+# Configurar Git para evitar warnings
+RUN git config --global user.email "pentest@kali.local" && \
+    git config --global user.name "Kali Pentest Container"
+
+# === HERRAMIENTAS BÁSICAS DE PROJECTDISCOVERY ===
 RUN go install -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest
+RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+RUN go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
+RUN go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
 
-# Instalación de herramientas adicionales desde Go
-RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest && \
-    go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest && \
-    go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
+# === HERRAMIENTAS AVANZADAS DE DESCUBRIMIENTO ===
+RUN go install -v github.com/projectdiscovery/katana/cmd/katana@latest          # Web crawling
+RUN go install -v github.com/projectdiscovery/uncover/cmd/uncover@latest        # Shodan/Censys integration
+RUN go install -v github.com/tomnomnom/assetfinder@latest                       # Asset discovery
+RUN go install -v github.com/tomnomnom/httprobe@latest                          # HTTP probe
+RUN go install -v github.com/tomnomnom/waybackurls@latest                       # Wayback machine URLs
+RUN go install -v github.com/tomnomnom/gf@latest                                # Grep patterns
+RUN go install -v github.com/ffuf/ffuf@latest                                   # Web fuzzer
+RUN go install -v github.com/OJ/gobuster/v3@latest                              # Directory/DNS bruteforcer
 
-# Creación de directorios de trabajo
-RUN mkdir -p /opt/pentest/{scripts,reports,config,temp,tools}
+# === HERRAMIENTAS DE ENUMERACIÓN DE RED ===
+RUN go install -v github.com/projectdiscovery/dnsx/cmd/dnsx@latest              # DNS enumeration
+RUN go install -v github.com/projectdiscovery/shuffledns/cmd/shuffledns@latest  # DNS resolver
+RUN go install -v github.com/lc/gau/v2/cmd/gau@latest                          # URL gathering
+RUN go install -v github.com/tomnomnom/anew@latest                              # Add new lines
+RUN go install -v github.com/hakluke/hakcheckurl@latest                         # URL checker
 
-# Descarga de LinPEAS y WinPEAS
+# === INSTALACIÓN DE PAQUETES PYTHON ESPECÍFICOS ===
+WORKDIR /opt/pentest
+
+# Instalar paquetes específicos de pentesting que no están en repos de Kali
+RUN pip3 install --no-cache-dir --break-system-packages \
+    python-nmap \
+    python-masscan \
+    pymetasploit3 \
+    python-libnmap \
+    schedule \
+    colorama \
+    psycopg2-binary
+
+# Instalar impacket por separado para evitar conflictos con cryptography
+RUN pip3 install --no-cache-dir --break-system-packages --no-deps impacket && \
+    pip3 install --no-cache-dir --break-system-packages \
+    flask \
+    ldap3 \
+    ldapdomaindump \
+    pyasn1 \
+    pycryptodomex \
+    pyOpenSSL \
+    six \
+    dnspython
+
+# === HERRAMIENTAS ADICIONALES DE RED Y ENUMERACIÓN ===
+RUN pip3 install --no-cache-dir --break-system-packages \
+    netaddr \
+    ipwhois \
+    shodan \
+    censys \
+    dnspython
+
+# === HERRAMIENTAS DE ANÁLISIS DE SERVICIOS ===
+RUN pip3 install --no-cache-dir --break-system-packages \
+    paramiko \
+    pysnmp \
+    ldap3
+
+# === INSTALACIÓN DE HERRAMIENTAS ADICIONALES DESDE REPOSITORIOS ===
+RUN apt-get update && apt-get install -y \
+    # Herramientas de enumeración SMB/NetBIOS
+    smbclient smbmap enum4linux-ng \
+    nbtscan \
+    # Herramientas DNS
+    dnsrecon fierce \
+    # Herramientas de análisis SSL/TLS
+    sslscan sslyze \
+    # Herramientas de enumeración SNMP
+    snmp snmp-mibs-downloader \
+    # Herramientas adicionales de red
+    arping hping3 \
+    # Limpieza
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# === CONFIGURACIÓN DE HERRAMIENTAS ===
+# Crear estructura de directorios
+RUN mkdir -p /opt/pentest/{scripts,reports,config,temp,tools,wordlists,results}
+
+# Descargar SecLists (wordlists esenciales)
+RUN git clone --depth 1 https://github.com/danielmiessler/SecLists.git /opt/pentest/wordlists/SecLists
+
+# Descargar LinPEAS y WinPEAS
 RUN mkdir -p /opt/pentest/tools/PEASS-ng && \
     git clone --depth 1 https://github.com/carlospolop/PEASS-ng.git /opt/pentest/tools/PEASS-ng
 
-# Instalación de dependencias Python para los scripts
-WORKDIR /opt/pentest
-COPY requirements.txt /opt/pentest/
-RUN pip3 install --no-cache-dir -r requirements.txt
+# Actualizar nuclei templates
+RUN nuclei -update-templates
 
-# Configuración de acceso SSH (opcional, para mantenimiento)
-RUN mkdir /var/run/sshd
+# Configurar Metasploit
+RUN msfdb init || echo "MSF DB initialization skipped"
+
+# === SCRIPTS PERSONALIZADOS DE DESCUBRIMIENTO ===
+# COPY scripts/network-discovery.py /opt/pentest/scripts/
+# COPY scripts/host-enumeration.py /opt/pentest/scripts/
+# COPY scripts/service-analysis.py /opt/pentest/scripts/
+# COPY scripts/vulnerability-scanner.py /opt/pentest/scripts/
+
+# Instalamos Flask para que actue de API entre N8N y Kali y se ejecuten los workflows
+COPY kali-api-service.py /opt/pentest/
+RUN pip3 install --no-cache-dir --break-system-packages flask
+EXPOSE 8080
+
+
+# === CONFIGURACIÓN SSH ===
+RUN mkdir -p /var/run/sshd
 RUN echo 'root:pentestpass' | chpasswd
 RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
-# Exposición de puertos (opcional, solo si se necesita acceso directo)
-# EXPOSE 22
+# === CONFIGURACIÓN FINAL ===
+# Configurar PATH final
+ENV PATH=$PATH:/opt/pentest/scripts:/opt/pentest/tools
 
+# Configurar punto de entrada
+WORKDIR /opt/pentest
 CMD ["/usr/sbin/sshd", "-D"]

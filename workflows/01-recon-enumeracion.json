@@ -1,344 +1,263 @@
 {
-  "name": "01-Recon-Enumeracion",
+  "name": "01-Network-Discovery-Enumeration",
   "nodes": [
     {
       "parameters": {
-        "content": "# Flujo de Reconocimiento y Enumeración\n\nEste workflow automatiza la fase inicial de reconocimiento y enumeración, siguiendo estos pasos:\n\n1. Escaneo de puertos con técnicas de evasión\n2. Enumeración de servicios\n3. Análisis de vulnerabilidades\n\nPuede configurar los objetivos y opciones en el formulario inicial."
+        "content": "## 🔍 Network Discovery & Enumeration Workflow\n\n**Objetivo**: Descubrir y enumerar hosts en la red objetivo\n\n**Fases**:\n1. Validación de entrada\n2. Descubrimiento de red\n3. Enumeración detallada de hosts\n4. Consolidación de resultados\n5. Generación de reportes\n\n**Input requerido**:\n- `target_network`: Red objetivo (ej: 192.168.1.0/24)\n- `scan_intensity`: low, medium, high\n- `stealth_mode`: true/false"
       },
-      "id": "f21c0ed1-1c7c-4e82-985e-86e0bd69c0fe",
-      "name": "Descripción del Workflow",
-      "type": "n8n-nodes-base.executeWorkflowTrigger",
-      "position": [
-        380,
-        280
-      ]
-    },
-    {
-      "parameters": {
-        "formTitle": "Configuración de Escaneo",
-        "formFields": {
-          "values": [
-            {
-              "fieldName": "target",
-              "fieldTitle": "Objetivo",
-              "fieldType": "string",
-              "fieldPlaceholder": "IP o rango CIDR (ej: 192.168.1.0/24)",
-              "fieldDefaultValue": "192.168.1.1",
-              "fieldRequired": true
-            },
-            {
-              "fieldName": "intensity",
-              "fieldTitle": "Intensidad de Escaneo",
-              "fieldType": "options",
-              "fieldOptions": "low:Baja,medium:Media,high:Alta",
-              "fieldDefaultValue": "medium",
-              "fieldRequired": true
-            },
-            {
-              "fieldName": "evasion",
-              "fieldTitle": "Técnicas de Evasión",
-              "fieldType": "multiOptions",
-              "fieldOptions": "ttl_manipulation:Manipulación TTL,ip_fragmentation:Fragmentación IP,timing:Ajuste de Timing,custom_stealth:Técnicas Personalizadas",
-              "fieldDefaultValue": "ttl_manipulation,timing",
-              "fieldRequired": false
-            }
-          ]
-        }
-      },
-      "id": "a34df52d-a7c1-462a-9f3a-3adb5e221e9e",
-      "name": "Formulario de Configuración",
-      "type": "n8n-nodes-base.form",
-      "position": [
-        600,
-        280
-      ]
-    },
-    {
-      "parameters": {
-        "command": "/opt/pentest/scripts/port-discovery.py -t {{ $json.target }} -o /opt/pentest/temp/scan_{{ $json.target.replace('/','-') }}.json --techniques {{ $json.evasion }}",
-        "executionMode": "auto"
-      },
-      "id": "a3553c4d-43c7-4dfa-a0e3-3a47b91e2235",
-      "name": "Escaneo de Puertos",
-      "type": "n8n-nodes-base.executeCommand",
-      "position": [
-        820,
-        280
-      ]
-    },
-    {
-      "parameters": {
-        "path": "/opt/pentest/temp/scan_{{ $json.target.replace('/','-') }}.json"
-      },
-      "id": "b1c34e50-ff3a-43bd-8ebb-65e5f3b0fc8e",
-      "name": "Leer Resultados de Escaneo",
-      "type": "n8n-nodes-base.readBinaryFile",
-      "position": [
-        1040,
-        280
-      ]
+      "name": "Workflow Info",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [380, 240],
+      "typeVersion": 1
     },
     {
       "parameters": {},
-      "id": "5d0aff65-7eda-4eec-9b9c-8adb07c9c4c5",
-      "name": "Convertir a JSON",
-      "type": "n8n-nodes-base.moveBinaryData",
-      "position": [
-        1260,
-        280
-      ]
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [680, 460],
+      "typeVersion": 1
     },
     {
       "parameters": {
-        "command": "/opt/pentest/scripts/service-enum.py -t {{ $json.target }} -i /opt/pentest/temp/scan_{{ $json.target.replace('/','-') }}.json -o /opt/pentest/temp/enum_{{ $json.target.replace('/','-') }}.json",
-        "executionMode": "auto"
+        "jsCode": "// Validar entrada y configurar parámetros\nconst input = items[0].json;\n\n// Validaciones\nif (!input.target_network) {\n  throw new Error('❌ Se requiere target_network');\n}\n\n// Configuración por intensidad\nconst intensityConfig = {\n  'low': {\n    discovery_methods: ['ping_sweep'],\n    port_scan_type: 'quick',\n    threads: 20,\n    stealth: true\n  },\n  'medium': {\n    discovery_methods: ['ping_sweep', 'arp_scan'],\n    port_scan_type: 'comprehensive', \n    threads: 50,\n    stealth: false\n  },\n  'high': {\n    discovery_methods: ['ping_sweep', 'arp_scan', 'tcp_syn_scan'],\n    port_scan_type: 'comprehensive',\n    threads: 100,\n    stealth: false\n  }\n};\n\nconst intensity = input.scan_intensity || 'medium';\nconst config = intensityConfig[intensity];\n\n// Preparar configuración final\nconst scanConfig = {\n  target_network: input.target_network,\n  scan_intensity: intensity,\n  stealth_mode: input.stealth_mode || config.stealth,\n  discovery_methods: config.discovery_methods,\n  port_scan_type: config.port_scan_type,\n  threads: config.threads,\n  timestamp: new Date().toISOString(),\n  workflow_id: $workflow.id,\n  execution_id: $execution.id\n};\n\nconsole.log('🚀 Iniciando descubrimiento:', scanConfig);\n\nreturn {\n  json: scanConfig\n};"
       },
-      "id": "ebc0453a-8f78-4a98-b9db-01a4e15b59ef",
-      "name": "Enumeración de Servicios",
+      "name": "Validate & Configure",
+      "type": "n8n-nodes-base.code",
+      "position": [900, 460],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "command": "python3 /opt/pentest/scripts/network-discovery.py \"{{ $json.target_network }}\" -c /opt/pentest/config/discovery-config.json -o /opt/pentest/results/discovery_{{ $json.execution_id }}.json -v",
+        "options": {}
+      },
+      "name": "Network Discovery",
       "type": "n8n-nodes-base.executeCommand",
-      "position": [
-        1480,
-        280
-      ]
+      "position": [1140, 460],
+      "typeVersion": 1
     },
     {
       "parameters": {
-        "path": "/opt/pentest/temp/enum_{{ $json.target.replace('/','-') }}.json"
+        "jsCode": "// Procesar resultados del descubrimiento\nconst command_output = items[0].json;\nconst config = items[0].json;\n\ntry {\n  // Leer archivo de resultados\n  const fs = require('fs');\n  const resultsPath = `/opt/pentest/results/discovery_${config.execution_id}.json`;\n  \n  if (!fs.existsSync(resultsPath)) {\n    throw new Error('❌ Archivo de resultados no encontrado');\n  }\n  \n  const discoveryResults = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));\n  \n  // Validar resultados\n  if (!discoveryResults.active_hosts || discoveryResults.active_hosts.length === 0) {\n    console.log('⚠️ No se encontraron hosts activos');\n    return {\n      json: {\n        success: false,\n        error: 'No active hosts found',\n        discovery_results: discoveryResults\n      }\n    };\n  }\n  \n  console.log(`✅ Descubrimiento completado: ${discoveryResults.active_hosts.length} hosts encontrados`);\n  \n  // Preparar datos para enumeración\n  const hostsForEnum = discoveryResults.active_hosts.map(host => ({\n    ip: host.ip,\n    mac: host.mac || null,\n    vendor: host.vendor || null,\n    methods: host.methods || [],\n    open_ports: host.open_ports || [],\n    priority: host.total_open_ports || 0\n  }));\n  \n  // Ordenar por prioridad (más puertos abiertos = mayor prioridad)\n  hostsForEnum.sort((a, b) => b.priority - a.priority);\n  \n  return {\n    json: {\n      success: true,\n      discovery_results: discoveryResults,\n      hosts_for_enumeration: hostsForEnum,\n      total_hosts: hostsForEnum.length,\n      network_info: discoveryResults.network_info,\n      statistics: discoveryResults.statistics,\n      config: config\n    }\n  };\n  \n} catch (error) {\n  console.error('❌ Error procesando resultados:', error.message);\n  return {\n    json: {\n      success: false,\n      error: error.message,\n      raw_output: command_output\n    }\n  };\n}"
       },
-      "id": "6a21e8d9-abfd-47cc-9428-0a9e0b9ac1f8",
-      "name": "Leer Resultados de Enumeración",
-      "type": "n8n-nodes-base.readBinaryFile",
-      "position": [
-        1700,
-        280
-      ]
-    },
-    {
-      "parameters": {},
-      "id": "82be42c8-0e23-462f-a7d1-e5ec1a0f02e1",
-      "name": "Convertir a JSON",
-      "type": "n8n-nodes-base.moveBinaryData",
-      "position": [
-        1920,
-        280
-      ]
-    },
-    {
-      "parameters": {
-        "command": "/opt/pentest/scripts/vuln-scan.py -t {{ $json.target }} -i /opt/pentest/temp/scan_{{ $json.target.replace('/','-') }}.json -o /opt/pentest/temp/vuln_{{ $json.target.replace('/','-') }}.json --intensity {{ $json.intensity }}",
-        "executionMode": "auto"
-      },
-      "id": "f8712c89-c7e5-49d5-b78c-40fdcaa94a4c",
-      "name": "Análisis de Vulnerabilidades",
-      "type": "n8n-nodes-base.executeCommand",
-      "position": [
-        2140,
-        280
-      ]
-    },
-    {
-      "parameters": {
-        "path": "/opt/pentest/temp/vuln_{{ $json.target.replace('/','-') }}.json"
-      },
-      "id": "7b34db1a-e234-43f0-8c44-09ec3682f7a4",
-      "name": "Leer Resultados de Vulnerabilidades",
-      "type": "n8n-nodes-base.readBinaryFile",
-      "position": [
-        2360,
-        280
-      ]
-    },
-    {
-      "parameters": {},
-      "id": "1c1bd8d5-c9b2-48b6-8d84-7f20a56e76c9",
-      "name": "Convertir a JSON",
-      "type": "n8n-nodes-base.moveBinaryData",
-      "position": [
-        2580,
-        280
-      ]
+      "name": "Process Discovery Results",
+      "type": "n8n-nodes-base.code",
+      "position": [1380, 460],
+      "typeVersion": 2
     },
     {
       "parameters": {
         "conditions": {
-          "string": [
+          "boolean": [
             {
               "value1": "={{ $json.success }}",
-              "operation": "equal",
-              "value2": "true"
+              "value2": true
             }
           ]
         }
       },
-      "id": "bc5e6f63-b4c3-41d2-ab0e-2be3ec70d2c0",
-      "name": "Verificar Éxito",
+      "name": "Check Discovery Success",
       "type": "n8n-nodes-base.if",
-      "position": [
-        2800,
-        280
-      ]
+      "position": [1620, 460],
+      "typeVersion": 1
     },
     {
       "parameters": {
-        "content": "=## 🎯 Objetivo: {{ $json.target }}\n\n### ✅ Escaneo Completado\n\n**Duración**: {{ $json.scan_info.duration }} segundos\n**Intensidad**: {{ $json.intensity }}\n**Técnicas de Evasión**: {{ $json.evasion }}\n\n### 📊 Resumen de Vulnerabilidades\n\n- **Críticas**: {{ $json.summary.critical }}\n- **Altas**: {{ $json.summary.high }}\n- **Medias**: {{ $json.summary.medium }}\n- **Bajas**: {{ $json.summary.low }}\n- **Informativas**: {{ $json.summary.info }}\n\n### 📋 Siguientes Pasos\n\nPara continuar con la explotación, ejecute el workflow '02-Explotacion-Principal' con el siguiente objetivo: {{ $json.target }}",
-        "outputDataSource": "input"
+        "jsCode": "// Dividir hosts en lotes para enumeración paralela\nconst data = items[0].json;\nconst hosts = data.hosts_for_enumeration;\nconst batchSize = 5; // Procesar 5 hosts en paralelo\n\nif (!hosts || hosts.length === 0) {\n  return [];\n}\n\nconst batches = [];\nfor (let i = 0; i < hosts.length; i += batchSize) {\n  const batch = hosts.slice(i, i + batchSize);\n  batches.push({\n    json: {\n      batch_id: Math.floor(i / batchSize) + 1,\n      hosts: batch,\n      batch_size: batch.length,\n      total_batches: Math.ceil(hosts.length / batchSize),\n      config: data.config,\n      discovery_results: data.discovery_results\n    }\n  });\n}\n\nconsole.log(`📦 Creados ${batches.length} lotes para enumeración`);\nreturn batches;"
       },
-      "id": "e2c0a733-b93c-49da-88c8-7267ecc07e44",
-      "name": "Reporte de Éxito",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "position": [
-        3020,
-        180
-      ]
+      "name": "Prepare Host Batches",
+      "type": "n8n-nodes-base.code",
+      "position": [1860, 360],
+      "typeVersion": 2
     },
     {
       "parameters": {
-        "content": "=## ⚠️ Error en el Proceso\n\n**Objetivo**: {{ $json.target }}\n**Mensaje**: {{ $json.message || 'Error desconocido durante el escaneo' }}\n\nPor favor, verifique la configuración e intente nuevamente.",
-        "outputDataSource": "input"
+        "jsCode": "// Preparar comando de enumeración para el lote\nconst batch = items[0].json;\nconst hostIPs = batch.hosts.map(h => h.ip).join(' ');\nconst executionId = batch.config.execution_id;\nconst batchId = batch.batch_id;\n\n// Comando de enumeración\nconst command = `python3 /opt/pentest/scripts/host-enumeration.py -t ${hostIPs} -c /opt/pentest/config/enumeration-config.json -o /opt/pentest/results/enumeration_${executionId}_batch_${batchId}.json -v`;\n\nconsole.log(`🔍 Enumerando lote ${batchId}: ${batch.hosts.length} hosts`);\n\nreturn {\n  json: {\n    command: command,\n    batch_info: batch,\n    output_file: `/opt/pentest/results/enumeration_${executionId}_batch_${batchId}.json`\n  }\n};"
       },
-      "id": "0df62843-4b63-444a-b36d-2d8a2f3be8fc",
-      "name": "Reporte de Error",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "position": [
-        3020,
-        380
-      ]
+      "name": "Prepare Enumeration Command",
+      "type": "n8n-nodes-base.code",
+      "position": [2100, 360],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "command": "={{ $json.command }}",
+        "options": {}
+      },
+      "name": "Execute Host Enumeration",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [2340, 360],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "jsCode": "// Procesar resultados de enumeración del lote\nconst batchInfo = items[0].json.batch_info;\nconst outputFile = items[0].json.output_file;\n\ntry {\n  const fs = require('fs');\n  \n  if (!fs.existsSync(outputFile)) {\n    throw new Error(`Archivo de resultados no encontrado: ${outputFile}`);\n  }\n  \n  const enumerationResults = JSON.parse(fs.readFileSync(outputFile, 'utf8'));\n  \n  console.log(`✅ Lote ${batchInfo.batch_id} completado: ${enumerationResults.enumerated_hosts?.length || 0} hosts enumerados`);\n  \n  return {\n    json: {\n      batch_id: batchInfo.batch_id,\n      success: true,\n      enumerated_hosts: enumerationResults.enumerated_hosts || [],\n      statistics: enumerationResults.statistics || {},\n      output_file: outputFile\n    }\n  };\n  \n} catch (error) {\n  console.error(`❌ Error en lote ${batchInfo.batch_id}:`, error.message);\n  return {\n    json: {\n      batch_id: batchInfo.batch_id,\n      success: false,\n      error: error.message,\n      enumerated_hosts: []\n    }\n  };\n}"
+      },
+      "name": "Process Enumeration Results",
+      "type": "n8n-nodes-base.code",
+      "position": [2580, 360],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "// Consolidar todos los resultados de enumeración\nconst allBatches = items;\nconst allHosts = [];\nconst allStatistics = {\n  total_hosts_enumerated: 0,\n  total_open_ports: 0,\n  total_services: 0,\n  hosts_with_web: 0,\n  hosts_with_smb: 0,\n  successful_batches: 0,\n  failed_batches: 0\n};\n\n// Consolidar resultados de todos los lotes\nfor (const batch of allBatches) {\n  if (batch.json.success) {\n    allStatistics.successful_batches++;\n    allHosts.push(...batch.json.enumerated_hosts);\n    \n    // Sumar estadísticas\n    const stats = batch.json.statistics;\n    if (stats) {\n      allStatistics.total_hosts_enumerated += stats.total_hosts_enumerated || 0;\n      allStatistics.total_open_ports += stats.total_open_ports || 0;\n      allStatistics.total_services += stats.total_services || 0;\n      allStatistics.hosts_with_web += stats.hosts_with_web || 0;\n      allStatistics.hosts_with_smb += stats.hosts_with_smb || 0;\n    }\n  } else {\n    allStatistics.failed_batches++;\n    console.error(`❌ Lote ${batch.json.batch_id} falló: ${batch.json.error}`);\n  }\n}\n\n// Análisis de servicios encontrados\nconst serviceAnalysis = {\n  unique_services: new Set(),\n  web_services: [],\n  database_services: [],\n  file_services: [],\n  remote_access: [],\n  vulnerable_services: []\n};\n\n// Categorizar servicios\nfor (const host of allHosts) {\n  if (host.ports) {\n    for (const port of host.ports) {\n      if (port.state === 'open') {\n        serviceAnalysis.unique_services.add(port.service);\n        \n        // Categorizar servicios\n        const service = port.service.toLowerCase();\n        const portNum = port.port;\n        \n        if (['http', 'https', 'http-alt', 'http-proxy'].includes(service)) {\n          serviceAnalysis.web_services.push({\n            host: host.ip,\n            port: portNum,\n            service: service,\n            version: port.version || 'Unknown'\n          });\n        }\n        \n        if (['mysql', 'postgresql', 'mssql', 'oracle', 'mongodb'].includes(service)) {\n          serviceAnalysis.database_services.push({\n            host: host.ip,\n            port: portNum,\n            service: service,\n            version: port.version || 'Unknown'\n          });\n        }\n        \n        if (['ftp', 'smb', 'nfs', 'ssh', 'telnet'].includes(service)) {\n          serviceAnalysis.file_services.push({\n            host: host.ip,\n            port: portNum,\n            service: service,\n            version: port.version || 'Unknown'\n          });\n        }\n        \n        if (['ssh', 'telnet', 'rdp', 'vnc'].includes(service)) {\n          serviceAnalysis.remote_access.push({\n            host: host.ip,\n            port: portNum,\n            service: service,\n            version: port.version || 'Unknown'\n          });\n        }\n        \n        // Servicios potencialmente vulnerables (versiones específicas)\n        if (port.version && (service.includes('apache') || service.includes('nginx') || service.includes('iis'))) {\n          serviceAnalysis.vulnerable_services.push({\n            host: host.ip,\n            port: portNum,\n            service: service,\n            version: port.version\n          });\n        }\n      }\n    }\n  }\n}\n\n// Convertir Set a Array\nserviceAnalysis.unique_services = Array.from(serviceAnalysis.unique_services);\n\n// Preparar resumen ejecutivo\nconst executiveSummary = {\n  scan_completed: new Date().toISOString(),\n  total_hosts_discovered: allStatistics.total_hosts_enumerated,\n  total_services_identified: allStatistics.total_services,\n  total_open_ports: allStatistics.total_open_ports,\n  critical_findings: {\n    web_services: serviceAnalysis.web_services.length,\n    database_services: serviceAnalysis.database_services.length,\n    remote_access_services: serviceAnalysis.remote_access.length,\n    smb_hosts: allStatistics.hosts_with_smb\n  },\n  risk_assessment: {\n    high_risk_services: serviceAnalysis.database_services.length + serviceAnalysis.remote_access.length,\n    medium_risk_services: serviceAnalysis.web_services.length,\n    information_disclosure: allStatistics.hosts_with_smb\n  }\n};\n\nconsole.log('📊 Consolidación completada:');\nconsole.log(`   Hosts enumerados: ${allStatistics.total_hosts_enumerated}`);\nconsole.log(`   Servicios únicos: ${serviceAnalysis.unique_services.length}`);\nconsole.log(`   Servicios web: ${serviceAnalysis.web_services.length}`);\nconsole.log(`   Servicios de BBDD: ${serviceAnalysis.database_services.length}`);\nconsole.log(`   Acceso remoto: ${serviceAnalysis.remote_access.length}`);\n\nreturn {\n  json: {\n    success: true,\n    consolidated_results: {\n      enumerated_hosts: allHosts,\n      statistics: allStatistics,\n      service_analysis: serviceAnalysis,\n      executive_summary: executiveSummary,\n      timestamp: new Date().toISOString()\n    }\n  }\n};"
+      },
+      "name": "Consolidate All Results",
+      "type": "n8n-nodes-base.code",
+      "position": [2820, 360],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "// Guardar resultados consolidados y generar reportes\nconst results = items[0].json.consolidated_results;\nconst fs = require('fs');\nconst path = require('path');\n\ntry {\n  // Crear directorio de resultados si no existe\n  const resultsDir = '/opt/pentest/results';\n  const reportsDir = '/opt/pentest/reports';\n  \n  if (!fs.existsSync(resultsDir)) {\n    fs.mkdirSync(resultsDir, { recursive: true });\n  }\n  \n  if (!fs.existsSync(reportsDir)) {\n    fs.mkdirSync(reportsDir, { recursive: true });\n  }\n  \n  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');\n  \n  // Guardar resultados completos\n  const fullResultsFile = path.join(resultsDir, `full_scan_results_${timestamp}.json`);\n  fs.writeFileSync(fullResultsFile, JSON.stringify(results, null, 2));\n  \n  // Generar reporte ejecutivo en JSON\n  const executiveReportFile = path.join(reportsDir, `executive_report_${timestamp}.json`);\n  fs.writeFileSync(executiveReportFile, JSON.stringify(results.executive_summary, null, 2));\n  \n  // Generar archivo CSV con servicios\n  const csvData = [];\n  csvData.push('Host,Port,Service,Version,State,Protocol');\n  \n  for (const host of results.enumerated_hosts) {\n    if (host.ports) {\n      for (const port of host.ports) {\n        if (port.state === 'open') {\n          csvData.push(`${host.ip},${port.port},${port.service},\"${port.version || ''}\",${port.state},${port.protocol}`);\n        }\n      }\n    }\n  }\n  \n  const csvFile = path.join(reportsDir, `services_summary_${timestamp}.csv`);\n  fs.writeFileSync(csvFile, csvData.join('\\n'));\n  \n  // Generar archivo de hosts para próximas fases\n  const hostsForVulnScan = results.enumerated_hosts\n    .filter(host => host.ports && host.ports.some(p => p.state === 'open'))\n    .map(host => ({\n      ip: host.ip,\n      hostname: host.hostname,\n      open_ports: host.ports.filter(p => p.state === 'open').map(p => p.port),\n      services: host.ports.filter(p => p.state === 'open').map(p => ({\n        port: p.port,\n        service: p.service,\n        version: p.version\n      })),\n      priority: host.statistics?.open_ports || 0\n    }));\n  \n  const vulnScanFile = path.join(resultsDir, `hosts_for_vulnerability_scan_${timestamp}.json`);\n  fs.writeFileSync(vulnScanFile, JSON.stringify(hostsForVulnScan, null, 2));\n  \n  console.log('💾 Archivos generados:');\n  console.log(`   Resultados completos: ${fullResultsFile}`);\n  console.log(`   Reporte ejecutivo: ${executiveReportFile}`);\n  console.log(`   Resumen CSV: ${csvFile}`);\n  console.log(`   Hosts para análisis de vulnerabilidades: ${vulnScanFile}`);\n  \n  return {\n    json: {\n      success: true,\n      files_generated: {\n        full_results: fullResultsFile,\n        executive_report: executiveReportFile,\n        csv_summary: csvFile,\n        vulnerability_scan_targets: vulnScanFile\n      },\n      summary: results.executive_summary,\n      next_phase_ready: true,\n      hosts_for_vulnerability_scan: hostsForVulnScan.length\n    }\n  };\n  \n} catch (error) {\n  console.error('❌ Error guardando resultados:', error.message);\n  return {\n    json: {\n      success: false,\n      error: error.message\n    }\n  };\n}"
+      },
+      "name": "Generate Reports",
+      "type": "n8n-nodes-base.code",
+      "position": [3060, 360],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "content": "❌ **DISCOVERY FAILED**\n\nNo se encontraron hosts activos o hubo un error en el descubrimiento.\n\n**Posibles causas**:\n- Red objetivo inaccesible\n- Firewall bloqueando escaneos\n- Rango de red incorrecto\n- Problemas de conectividad\n\n**Revisar**:\n- Configuración de red\n- Permisos de escaneo\n- Logs del sistema"
+      },
+      "name": "Discovery Failed",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [1860, 580],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "✅ **SCAN COMPLETED**\n\n**Próximos pasos**:\n1. Revisar reportes generados\n2. Analizar servicios críticos\n3. Ejecutar análisis de vulnerabilidades\n4. Planificar fase de explotación\n\n**Archivos generados**:\n- Resultados completos (JSON)\n- Reporte ejecutivo (JSON) \n- Resumen de servicios (CSV)\n- Targets para vulnerability scan (JSON)"
+      },
+      "name": "Scan Complete",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [3300, 360],
+      "typeVersion": 1
     }
   ],
   "connections": {
-    "Descripción del Workflow": {
+    "Start": {
       "main": [
         [
           {
-            "node": "Formulario de Configuración",
+            "node": "Validate & Configure",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Formulario de Configuración": {
+    "Validate & Configure": {
       "main": [
         [
           {
-            "node": "Escaneo de Puertos",
+            "node": "Network Discovery",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Escaneo de Puertos": {
+    "Network Discovery": {
       "main": [
         [
           {
-            "node": "Leer Resultados de Escaneo",
+            "node": "Process Discovery Results",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Leer Resultados de Escaneo": {
+    "Process Discovery Results": {
       "main": [
         [
           {
-            "node": "Convertir a JSON",
+            "node": "Check Discovery Success",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Convertir a JSON": {
+    "Check Discovery Success": {
       "main": [
         [
           {
-            "node": "Enumeración de Servicios",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Enumeración de Servicios": {
-      "main": [
-        [
-          {
-            "node": "Leer Resultados de Enumeración",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Leer Resultados de Enumeración": {
-      "main": [
-        [
-          {
-            "node": "Convertir a JSON",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Convertir a JSON1": {
-      "main": [
-        [
-          {
-            "node": "Análisis de Vulnerabilidades",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Análisis de Vulnerabilidades": {
-      "main": [
-        [
-          {
-            "node": "Leer Resultados de Vulnerabilidades",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Leer Resultados de Vulnerabilidades": {
-      "main": [
-        [
-          {
-            "node": "Convertir a JSON",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Convertir a JSON2": {
-      "main": [
-        [
-          {
-            "node": "Verificar Éxito",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Verificar Éxito": {
-      "main": [
-        [
-          {
-            "node": "Reporte de Éxito",
+            "node": "Prepare Host Batches",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Reporte de Error",
+            "node": "Discovery Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Host Batches": {
+      "main": [
+        [
+          {
+            "node": "Prepare Enumeration Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Enumeration Command": {
+      "main": [
+        [
+          {
+            "node": "Execute Host Enumeration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Host Enumeration": {
+      "main": [
+        [
+          {
+            "node": "Process Enumeration Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Enumeration Results": {
+      "main": [
+        [
+          {
+            "node": "Consolidate All Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidate All Results": {
+      "main": [
+        [
+          {
+            "node": "Generate Reports",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Reports": {
+      "main": [
+        [
+          {
+            "node": "Scan Complete",
             "type": "main",
             "index": 0
           }
@@ -346,5 +265,26 @@
       ]
     }
   },
-  "pinData": {}
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "discovery",
+      "name": "discovery"
+    },
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z", 
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "enumeration",
+      "name": "enumeration"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
 }
