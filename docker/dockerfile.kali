@@ -1,8 +1,7 @@
 FROM kalilinux/kali-rolling:latest
-
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Instalación de herramientas esenciales
+# Instalación de herramientas esenciales + dependencias para Go y compilación
 RUN apt-get update && apt-get install -y \
     python3 python3-pip python3-venv \
     git curl wget \
@@ -22,21 +21,38 @@ RUN apt-get update && apt-get install -y \
     net-tools iproute2 \
     ncat \
     whois \
+    libpcap-dev \
+    gcc \
+    build-essential \
+    libc6-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalación de Go para Nuclei y otras herramientas
 RUN apt-get update && apt-get install -y golang-go && apt-get clean
+
+# Configurar variables de entorno de Go
 ENV GOPATH=/root/go
 ENV PATH=$PATH:/root/go/bin
+
+# Configurar Go proxy
+ENV GOPROXY=https://proxy.golang.org,direct
+ENV GOSUMDB=sum.golang.org
+
+# Configurar Git para evitar warnings
+RUN git config --global user.email "docker@kali.local" && \
+    git config --global user.name "Kali Docker Build"
 
 # Instalación de Nuclei
 RUN go install -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest
 
-# Instalación de herramientas adicionales desde Go
-RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest && \
-    go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest && \
-    go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
+# Instalación de herramientas adicionales desde Go (una por una para mejor debugging)
+RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+
+RUN go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
+
+# Instalar naabu (la que causaba problemas) - ahora debería funcionar con libpcap-dev
+RUN go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
 
 # Creación de directorios de trabajo
 RUN mkdir -p /opt/pentest/{scripts,reports,config,temp,tools}
@@ -45,15 +61,62 @@ RUN mkdir -p /opt/pentest/{scripts,reports,config,temp,tools}
 RUN mkdir -p /opt/pentest/tools/PEASS-ng && \
     git clone --depth 1 https://github.com/carlospolop/PEASS-ng.git /opt/pentest/tools/PEASS-ng
 
-# Instalación de dependencias Python para los scripts
+# Instalar algunos paquetes Python desde repositorios de Kali (más estables)
+RUN apt-get update && apt-get install -y \
+    python3-requests \
+    python3-scapy \
+    python3-cryptography \
+    python3-paramiko \
+    python3-yaml \
+    python3-bs4 \
+    python3-numpy \
+    python3-pandas \
+    python3-sqlalchemy \
+    python3-redis \
+    python3-dotenv \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instalación directa de paquetes Python específicos para pentesting (últimas versiones)
 WORKDIR /opt/pentest
-COPY requirements.txt /opt/pentest/
-RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Instalar paquetes específicos de pentesting que no están en repos de Kali
+# Excluimos cryptography porque ya está instalado desde repos
+RUN pip3 install --no-cache-dir --break-system-packages \
+    python-nmap \
+    python-masscan \
+    pymetasploit3 \
+    python-libnmap \
+    schedule \
+    colorama \
+    psycopg2-binary
+
+# Instalar impacket por separado para evitar conflictos con cryptography
+RUN pip3 install --no-cache-dir --break-system-packages --no-deps impacket && \
+    pip3 install --no-cache-dir --break-system-packages \
+    flask \
+    ldap3 \
+    ldapdomaindump \
+    pyasn1 \
+    pycryptodomex \
+    pyOpenSSL \
+    six \
+    dnspython
+
+# Nota: argparse ya viene incluido en Python 3, no es necesario instalarlo
 
 # Configuración de acceso SSH (opcional, para mantenimiento)
-RUN mkdir /var/run/sshd
+RUN mkdir -p /var/run/sshd
 RUN echo 'root:pentestpass' | chpasswd
 RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+
+# Verificar que las herramientas se instalaron correctamente
+RUN echo "Verificando instalaciones..." && \
+    nuclei -version && \
+    subfinder -version && \
+    httpx -version && \
+    naabu -version && \
+    echo "Todas las herramientas instaladas correctamente"
 
 # Exposición de puertos (opcional, solo si se necesita acceso directo)
 # EXPOSE 22
