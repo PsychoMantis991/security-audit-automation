@@ -1,38 +1,64 @@
 FROM kalilinux/kali-rolling:latest
 ENV DEBIAN_FRONTEND=noninteractive
 
-# === INSTALACIÓN DE HERRAMIENTAS BÁSICAS Y DEPENDENCIAS ===
+# Instalación de herramientas esenciales + dependencias para Go y compilación
 RUN apt-get update && apt-get install -y \
-    # Herramientas básicas del sistema
     python3 python3-pip python3-venv \
-    git curl wget unzip \
-    jq nano vim tree \
-    iputils-ping dnsutils whois \
-    net-tools iproute2 arp-scan \
-    # Dependencias para compilación
-    libpcap-dev gcc build-essential libc6-dev \
-    # Herramientas de red y enumeración
-    nmap masscan zmap \
-    netcat-traditional socat \
-    # Herramientas de pentesting tradicionales
+    git curl wget \
+    nmap masscan \
     metasploit-framework \
     exploitdb \
-    nikto dirb gobuster \
-    hydra medusa \
+    nikto \
+    dirb gobuster \
+    hydra \
     sqlmap \
     hashcat john \
-    # Herramientas de proxy y túneles
     proxychains4 tor \
-    # SSH y servicios
-    openssh-server openssh-client \
-    # Herramientas de análisis
-    wireshark-common tcpdump \
-    binwalk foremost \
-    # Limpieza
+    openssh-server \
+    netcat-traditional socat \
+    jq nano vim \
+    iputils-ping dnsutils \
+    net-tools iproute2 \
+    ncat \
+    whois \
+    libpcap-dev \
+    gcc \
+    build-essential \
+    libc6-dev \
+    supervisor \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# === INSTALACIÓN DE PAQUETES PYTHON DESDE REPOSITORIOS (más estables) ===
+# Instalación de Go para Nuclei y otras herramientas
+RUN apt-get update && apt-get install -y golang-go && apt-get clean
+
+# Configurar variables de entorno de Go
+ENV GOPATH=/root/go
+ENV PATH=$PATH:/root/go/bin
+
+# Configurar Go proxy
+ENV GOPROXY=https://proxy.golang.org,direct
+ENV GOSUMDB=sum.golang.org
+
+# Instalación de Nuclei
+RUN go install -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest
+
+# Instalación de herramientas adicionales desde Go (una por una para mejor debugging)
+RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+
+RUN go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
+
+# Instalar naabu (la que causaba problemas) - ahora debería funcionar con libpcap-dev
+RUN go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
+
+# Creación de directorios de trabajo
+RUN mkdir -p /opt/pentest/{scripts,reports,config,temp,tools}
+
+# Descarga de LinPEAS y WinPEAS
+RUN mkdir -p /opt/pentest/tools/PEASS-ng && \
+    git clone --depth 1 https://github.com/carlospolop/PEASS-ng.git /opt/pentest/tools/PEASS-ng
+
+# Instalar algunos paquetes Python desde repositorios de Kali (más estables)
 RUN apt-get update && apt-get install -y \
     python3-requests \
     python3-scapy \
@@ -45,47 +71,16 @@ RUN apt-get update && apt-get install -y \
     python3-sqlalchemy \
     python3-redis \
     python3-dotenv \
+    python3-flask \
+    python3-flask-cors \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# === CONFIGURACIÓN DE GO ===
-RUN apt-get update && apt-get install -y golang-go && apt-get clean
-ENV GOPATH=/root/go
-ENV PATH=$PATH:/root/go/bin
-ENV GOPROXY=https://proxy.golang.org,direct
-ENV GOSUMDB=sum.golang.org
-
-# Configurar Git para evitar warnings
-RUN git config --global user.email "pentest@kali.local" && \
-    git config --global user.name "Kali Pentest Container"
-
-# === HERRAMIENTAS BÁSICAS DE PROJECTDISCOVERY ===
-RUN go install -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest
-RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
-RUN go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
-RUN go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
-
-# === HERRAMIENTAS AVANZADAS DE DESCUBRIMIENTO ===
-RUN go install -v github.com/projectdiscovery/katana/cmd/katana@latest          # Web crawling
-RUN go install -v github.com/projectdiscovery/uncover/cmd/uncover@latest        # Shodan/Censys integration
-RUN go install -v github.com/tomnomnom/assetfinder@latest                       # Asset discovery
-RUN go install -v github.com/tomnomnom/httprobe@latest                          # HTTP probe
-RUN go install -v github.com/tomnomnom/waybackurls@latest                       # Wayback machine URLs
-RUN go install -v github.com/tomnomnom/gf@latest                                # Grep patterns
-RUN go install -v github.com/ffuf/ffuf@latest                                   # Web fuzzer
-RUN go install -v github.com/OJ/gobuster/v3@latest                              # Directory/DNS bruteforcer
-
-# === HERRAMIENTAS DE ENUMERACIÓN DE RED ===
-RUN go install -v github.com/projectdiscovery/dnsx/cmd/dnsx@latest              # DNS enumeration
-RUN go install -v github.com/projectdiscovery/shuffledns/cmd/shuffledns@latest  # DNS resolver
-RUN go install -v github.com/lc/gau/v2/cmd/gau@latest                          # URL gathering
-RUN go install -v github.com/tomnomnom/anew@latest                              # Add new lines
-RUN go install -v github.com/hakluke/hakcheckurl@latest                         # URL checker
-
-# === INSTALACIÓN DE PAQUETES PYTHON ESPECÍFICOS ===
+# Instalación directa de paquetes Python específicos para pentesting (últimas versiones)
 WORKDIR /opt/pentest
 
 # Instalar paquetes específicos de pentesting que no están en repos de Kali
+# Excluimos cryptography porque ya está instalado desde repos
 RUN pip3 install --no-cache-dir --break-system-packages \
     python-nmap \
     python-masscan \
@@ -93,7 +88,8 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     python-libnmap \
     schedule \
     colorama \
-    psycopg2-binary
+    psycopg2-binary \
+    gunicorn
 
 # Instalar impacket por separado para evitar conflictos con cryptography
 RUN pip3 install --no-cache-dir --break-system-packages --no-deps impacket && \
@@ -107,75 +103,243 @@ RUN pip3 install --no-cache-dir --break-system-packages --no-deps impacket && \
     six \
     dnspython
 
-# === HERRAMIENTAS ADICIONALES DE RED Y ENUMERACIÓN ===
-RUN pip3 install --no-cache-dir --break-system-packages \
-    netaddr \
-    ipwhois \
-    shodan \
-    censys \
-    dnspython
+# Crear el servicio API Flask
+COPY <<EOF /opt/pentest/api_server.py
+#!/usr/bin/env python3
+import os
+import json
+import subprocess
+import threading
+import time
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import logging
 
-# === HERRAMIENTAS DE ANÁLISIS DE SERVICIOS ===
-RUN pip3 install --no-cache-dir --break-system-packages \
-    paramiko \
-    pysnmp \
-    ldap3
+app = Flask(__name__)
+CORS(app)
 
-# === INSTALACIÓN DE HERRAMIENTAS ADICIONALES DESDE REPOSITORIOS ===
-RUN apt-get update && apt-get install -y \
-    # Herramientas de enumeración SMB/NetBIOS
-    smbclient smbmap enum4linux-ng \
-    nbtscan \
-    # Herramientas DNS
-    dnsrecon fierce \
-    # Herramientas de análisis SSL/TLS
-    sslscan sslyze \
-    # Herramientas de enumeración SNMP
-    snmp snmp-mibs-downloader \
-    # Herramientas adicionales de red
-    arping hping3 \
-    # Limpieza
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Configurar logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# === CONFIGURACIÓN DE HERRAMIENTAS ===
-# Crear estructura de directorios
-RUN mkdir -p /opt/pentest/{scripts,reports,config,temp,tools,wordlists,results}
+@app.route('/api/discovery', methods=['POST'])
+def network_discovery():
+    try:
+        data = request.get_json()
+        target_network = data.get('target_network', '127.0.0.1')
+        scan_type = data.get('scan_type', 'ping_sweep')
+        timeout = data.get('timeout', 120)
+        
+        logger.info(f"🔍 Iniciando descubrimiento de red: {target_network}")
+        
+        # Ejecutar nmap para descubrimiento
+        if scan_type == 'ping_sweep':
+            cmd = f"nmap -sn {target_network}"
+        elif scan_type == 'arp_scan':
+            cmd = f"nmap -sn -PR {target_network}"
+        else:
+            cmd = f"nmap -sn {target_network}"
+            
+        logger.info(f"Ejecutando: {cmd}")
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
+        
+        # Procesar salida de nmap
+        hosts_found = []
+        if result.returncode == 0:
+            lines = result.stdout.split('\\n')
+            current_host = None
+            
+            for line in lines:
+                if 'Nmap scan report for' in line:
+                    # Extraer IP
+                    parts = line.split()
+                    if len(parts) >= 5:
+                        current_host = parts[4].strip('()')
+                    else:
+                        current_host = parts[-1]
+                    hosts_found.append(current_host)
+        
+        logger.info(f"✅ Encontrados {len(hosts_found)} hosts")
+        
+        return jsonify({
+            'success': True,
+            'hosts_found': hosts_found,
+            'host_details': [{'ip': ip, 'status': 'up'} for ip in hosts_found],
+            'scan_type': scan_type,
+            'target_network': target_network,
+            'command_executed': cmd,
+            'raw_output': result.stdout if result.returncode == 0 else result.stderr
+        })
+        
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            'success': False,
+            'error': 'Scan timeout expired',
+            'timeout': timeout
+        }), 408
+        
+    except Exception as e:
+        logger.error(f"❌ Error en descubrimiento: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
-# Descargar SecLists (wordlists esenciales)
-RUN git clone --depth 1 https://github.com/danielmiessler/SecLists.git /opt/pentest/wordlists/SecLists
+@app.route('/api/enumeration', methods=['POST'])
+def port_enumeration():
+    try:
+        data = request.get_json()
+        hosts = data.get('hosts', [])
+        ports = data.get('ports', 'top-100')
+        scan_type = data.get('scan_type', 'syn')
+        timeout = data.get('timeout', 180)
+        
+        logger.info(f"🔍 Iniciando enumeración de puertos para {len(hosts)} hosts")
+        
+        results = []
+        
+        for host in hosts:
+            host_ip = host if isinstance(host, str) else host.get('ip', host)
+            
+            # Configurar comando nmap según el tipo de escaneo
+            if ports == 'top-20':
+                port_arg = '--top-ports 20'
+            elif ports == 'top-100':
+                port_arg = '--top-ports 100'
+            elif ports == 'top-1000':
+                port_arg = '--top-ports 1000'
+            else:
+                port_arg = f'-p {ports}'
+            
+            if scan_type == 'syn':
+                cmd = f"nmap -sS {port_arg} -sV --version-intensity 1 {host_ip}"
+            else:
+                cmd = f"nmap -sT {port_arg} -sV --version-intensity 1 {host_ip}"
+                
+            logger.info(f"Enumerando {host_ip}: {cmd}")
+            
+            try:
+                result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
+                
+                # Procesar salida para extraer puertos abiertos
+                open_ports = []
+                if result.returncode == 0:
+                    lines = result.stdout.split('\\n')
+                    for line in lines:
+                        if '/tcp' in line and 'open' in line:
+                            parts = line.split()
+                            if len(parts) >= 3:
+                                port_info = parts[0].split('/')[0]
+                                service = parts[2] if len(parts) > 2 else 'unknown'
+                                version = ' '.join(parts[3:]) if len(parts) > 3 else 'unknown'
+                                
+                                open_ports.append({
+                                    'port': int(port_info),
+                                    'service': service,
+                                    'version': version,
+                                    'state': 'open'
+                                })
+                
+                results.append({
+                    'host': host_ip,
+                    'open_ports': open_ports,
+                    'total_open_ports': len(open_ports),
+                    'scan_status': 'completed'
+                })
+                
+                logger.info(f"✅ {host_ip}: {len(open_ports)} puertos abiertos")
+                
+            except subprocess.TimeoutExpired:
+                results.append({
+                    'host': host_ip,
+                    'open_ports': [],
+                    'total_open_ports': 0,
+                    'scan_status': 'timeout',
+                    'error': 'Scan timeout'
+                })
+                logger.warning(f"⏰ Timeout en {host_ip}")
+        
+        # Estadísticas
+        successful_scans = len([r for r in results if r['scan_status'] == 'completed'])
+        total_open_ports = sum(r['total_open_ports'] for r in results)
+        
+        return jsonify({
+            'success': True,
+            'results': results,
+            'statistics': {
+                'total_hosts': len(hosts),
+                'successful_scans': successful_scans,
+                'total_open_ports': total_open_ports,
+                'scan_type': scan_type,
+                'ports_scanned': ports
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Error en enumeración: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
-# Descargar LinPEAS y WinPEAS
-RUN mkdir -p /opt/pentest/tools/PEASS-ng && \
-    git clone --depth 1 https://github.com/carlospolop/PEASS-ng.git /opt/pentest/tools/PEASS-ng
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'service': 'pentest-api',
+        'version': '1.0.0'
+    })
 
-# Actualizar nuclei templates
-RUN nuclei -update-templates
+if __name__ == '__main__':
+    port = int(os.environ.get('API_PORT', 8080))
+    host = os.environ.get('API_HOST', '0.0.0.0')
+    app.run(host=host, port=port, debug=False)
+EOF
 
-# Configurar Metasploit
-RUN msfdb init || echo "MSF DB initialization skipped"
+# Hacer el script ejecutable
+RUN chmod +x /opt/pentest/api_server.py
 
-# === SCRIPTS PERSONALIZADOS DE DESCUBRIMIENTO ===
-# COPY scripts/network-discovery.py /opt/pentest/scripts/
-# COPY scripts/host-enumeration.py /opt/pentest/scripts/
-# COPY scripts/service-analysis.py /opt/pentest/scripts/
-# COPY scripts/vulnerability-scanner.py /opt/pentest/scripts/
+# Configurar supervisor para manejar múltiples servicios
+COPY <<EOF /etc/supervisor/conf.d/supervisord.conf
+[supervisord]
+nodaemon=true
+user=root
+logfile=/var/log/supervisor/supervisord.log
+pidfile=/var/run/supervisord.pid
 
-# Instalamos Flask para que actue de API entre N8N y Kali y se ejecuten los workflows
-COPY kali-api-service.py /opt/pentest/
-RUN pip3 install --no-cache-dir --break-system-packages flask
-EXPOSE 8080
+[program:api_server]
+command=python3 /opt/pentest/api_server.py
+directory=/opt/pentest
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/supervisor/api_server.err.log
+stdout_logfile=/var/log/supervisor/api_server.out.log
+environment=API_PORT=8080,API_HOST=0.0.0.0
 
+[program:sshd]
+command=/usr/sbin/sshd -D
+autostart=false
+autorestart=true
+EOF
 
-# === CONFIGURACIÓN SSH ===
+# Configuración de acceso SSH (opcional, para mantenimiento)
 RUN mkdir -p /var/run/sshd
 RUN echo 'root:pentestpass' | chpasswd
 RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
-# === CONFIGURACIÓN FINAL ===
-# Configurar PATH final
-ENV PATH=$PATH:/opt/pentest/scripts:/opt/pentest/tools
+# Crear directorios de logs
+RUN mkdir -p /var/log/supervisor
 
-# Configurar punto de entrada
-WORKDIR /opt/pentest
-CMD ["/usr/sbin/sshd", "-D"]
+# Verificar que las herramientas se instalaron correctamente
+RUN echo "Verificando instalaciones..." && \
+    nuclei -version && \
+    subfinder -version && \
+    httpx -version && \
+    naabu -version && \
+    echo "Todas las herramientas instaladas correctamente"
+
+# Exponer puerto de la API
+EXPOSE 8080
+
+# Iniciar supervisor para manejar múltiples servicios
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
