@@ -1,0 +1,223 @@
+{
+  "name": "Network Audit - Optimized for Docker Structure",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "scan-network",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Start Network Scan",
+      "type": "n8n-nodes-base.webhook",
+      "position": [500, 300],
+      "webhookId": "scan-network-webhook",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "jsCode": "// Configurar parámetros del escaneo\n// Soportar tanto GET (query) como POST (body)\nconst input = items[0].json.body || items[0].json.query || items[0].json;\n\nconst config = {\n  target_network: input.target_network || '127.0.0.1',\n  scan_intensity: input.scan_intensity || 'medium',\n  scan_type: input.scan_type || 'ping_sweep',\n  timeout: input.timeout || 120,\n  execution_id: `scan_${Date.now()}`,\n  timestamp: new Date().toISOString()\n};\n\n// Mapear intensidad a configuración específica\nconst intensityConfig = {\n  'low': {\n    scan_type: 'ping_sweep',\n    timeout: 60,\n    ports: 'top-20'\n  },\n  'medium': {\n    scan_type: 'ping_sweep',\n    timeout: 120,\n    ports: 'top-100'\n  },\n  'high': {\n    scan_type: 'arp_scan',\n    timeout: 180,\n    ports: 'top-1000'\n  }\n};\n\nconst intensity = intensityConfig[config.scan_intensity] || intensityConfig['medium'];\nconfig.scan_type = intensity.scan_type;\nconfig.timeout = intensity.timeout;\nconfig.ports = intensity.ports;\n\nconsole.log('🚀 Configuración del escaneo:', config);\n\nreturn { json: config };"
+      },
+      "name": "Configure Scan Parameters",
+      "type": "n8n-nodes-base.code",
+      "position": [720, 300],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "url": "http://security-audit-automation-kali-1:8080/api/discovery",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"target_network\": \"{{ $json.target_network }}\",\n  \"scan_type\": \"{{ $json.scan_type }}\",\n  \"timeout\": {{ $json.timeout }}\n}",
+        "options": {
+          "timeout": 150000,
+          "retry": {
+            "enabled": true,
+            "maxTries": 2
+          }
+        }
+      },
+      "name": "Network Discovery",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [940, 300],
+      "typeVersion": 4.1
+    },
+    {
+      "parameters": {
+        "jsCode": "// Procesar resultados del descubrimiento\nconst discoveryResult = items[0].json;\nconst config = items[1].json;\n\nconsole.log('📋 Resultados del descubrimiento:', discoveryResult);\n\nif (!discoveryResult.success) {\n  console.error('❌ Error en descubrimiento:', discoveryResult.error);\n  return {\n    json: {\n      success: false,\n      phase: 'discovery_failed',\n      error: discoveryResult.error || 'Discovery failed',\n      target_network: config.target_network,\n      execution_id: config.execution_id\n    }\n  };\n}\n\n// Verificar si se encontraron hosts\nconst hostsFound = discoveryResult.hosts_found || [];\nif (hostsFound.length === 0) {\n  console.log('⚠️ No se encontraron hosts activos');\n  return {\n    json: {\n      success: false,\n      phase: 'no_hosts_found',\n      error: 'No active hosts discovered',\n      target_network: config.target_network,\n      execution_id: config.execution_id,\n      raw_discovery: discoveryResult\n    }\n  };\n}\n\nconsole.log(`✅ Encontrados ${hostsFound.length} hosts activos:`, hostsFound);\n\n// Preparar datos para enumeración\n// Limitar a máximo 5 hosts para evitar timeouts\nconst hostsToEnumerate = hostsFound.slice(0, 5);\n\nreturn {\n  json: {\n    success: true,\n    phase: 'discovery_complete',\n    config: config,\n    hosts_discovered: hostsToEnumerate,\n    total_hosts_found: hostsFound.length,\n    hosts_to_enumerate: hostsToEnumerate.length,\n    discovery_details: discoveryResult.host_details || [],\n    execution_id: config.execution_id\n  }\n};"
+      },
+      "name": "Process Discovery Results",
+      "type": "n8n-nodes-base.code",
+      "position": [1160, 300],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.success }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "Check Discovery Success",
+      "type": "n8n-nodes-base.if",
+      "position": [1380, 300],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "url": "http://security-audit-automation-kali-1:8080/api/enumeration",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"hosts\": {{ JSON.stringify($json.hosts_discovered) }},\n  \"ports\": \"{{ $json.config.ports }}\",\n  \"scan_type\": \"syn\",\n  \"timeout\": {{ $json.config.timeout + 60 }}\n}",
+        "options": {
+          "timeout": 400000,
+          "retry": {
+            "enabled": true,
+            "maxTries": 2
+          }
+        }
+      },
+      "name": "Port Enumeration",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1600, 200],
+      "typeVersion": 4.1
+    },
+    {
+      "parameters": {
+        "jsCode": "// Consolidar resultados finales\nconst enumerationResult = items[0].json;\nconst discoveryData = items[1].json;\n\nconsole.log('📊 Procesando resultados de enumeración...');\n\nif (!enumerationResult.success) {\n  console.error('❌ Error en enumeración:', enumerationResult.error);\n  return {\n    json: {\n      success: false,\n      phase: 'enumeration_failed',\n      error: enumerationResult.error || 'Enumeration failed',\n      discovery_data: discoveryData,\n      execution_id: discoveryData.execution_id\n    }\n  };\n}\n\n// Procesar resultados de enumeración\nconst scanResults = enumerationResult.results || [];\nconst statistics = enumerationResult.statistics || {};\n\n// Análisis de servicios\nconst serviceAnalysis = {\n  web_services: [],\n  database_services: [],\n  remote_access: [],\n  critical_services: [],\n  all_services: new Set()\n};\n\n// Categorizar servicios por host\nscanResults.forEach(hostResult => {\n  if (hostResult.open_ports && hostResult.open_ports.length > 0) {\n    hostResult.open_ports.forEach(port => {\n      const service = port.service.toLowerCase();\n      serviceAnalysis.all_services.add(service);\n      \n      // Categorizar servicios\n      if (['http', 'https', 'ssl/http', 'http-alt'].includes(service)) {\n        serviceAnalysis.web_services.push({\n          host: hostResult.host,\n          port: port.port,\n          service: service,\n          version: port.version || 'Unknown'\n        });\n      }\n      \n      if (['mysql', 'postgresql', 'mssql', 'oracle', 'mongodb'].includes(service)) {\n        serviceAnalysis.database_services.push({\n          host: hostResult.host,\n          port: port.port,\n          service: service,\n          version: port.version || 'Unknown'\n        });\n      }\n      \n      if (['ssh', 'telnet', 'rdp', 'vnc', 'ftp'].includes(service)) {\n        serviceAnalysis.remote_access.push({\n          host: hostResult.host,\n          port: port.port,\n          service: service,\n          version: port.version || 'Unknown'\n        });\n      }\n      \n      if (['smb', 'netbios-ssn', 'microsoft-ds', 'ldap'].includes(service)) {\n        serviceAnalysis.critical_services.push({\n          host: hostResult.host,\n          port: port.port,\n          service: service,\n          version: port.version || 'Unknown'\n        });\n      }\n    });\n  }\n});\n\n// Generar reporte ejecutivo\nconst executiveReport = {\n  scan_completed: new Date().toISOString(),\n  execution_id: discoveryData.execution_id,\n  target_network: discoveryData.config.target_network,\n  scan_duration: `${discoveryData.config.timeout + 60}s max`,\n  \n  summary: {\n    hosts_discovered: discoveryData.total_hosts_found,\n    hosts_enumerated: statistics.successful_scans || 0,\n    total_open_ports: statistics.total_open_ports || 0,\n    unique_services: serviceAnalysis.all_services.size\n  },\n  \n  findings: {\n    web_services: serviceAnalysis.web_services.length,\n    database_services: serviceAnalysis.database_services.length,\n    remote_access_services: serviceAnalysis.remote_access.length,\n    critical_services: serviceAnalysis.critical_services.length\n  },\n  \n  risk_assessment: {\n    high_risk: serviceAnalysis.database_services.length + serviceAnalysis.critical_services.length,\n    medium_risk: serviceAnalysis.remote_access.length,\n    low_risk: serviceAnalysis.web_services.length,\n    total_risk_score: (serviceAnalysis.database_services.length * 3) + \n                     (serviceAnalysis.critical_services.length * 3) +\n                     (serviceAnalysis.remote_access.length * 2) +\n                     (serviceAnalysis.web_services.length * 1)\n  },\n  \n  recommendations: [\n    serviceAnalysis.web_services.length > 0 ? 'Revisar configuración de servicios web' : null,\n    serviceAnalysis.database_services.length > 0 ? 'Asegurar bases de datos expuestas' : null,\n    serviceAnalysis.remote_access.length > 0 ? 'Verificar servicios de acceso remoto' : null,\n    serviceAnalysis.critical_services.length > 0 ? 'Revisar servicios críticos de Windows' : null\n  ].filter(Boolean),\n  \n  next_steps: [\n    'Ejecutar análisis de vulnerabilidades en servicios encontrados',\n    'Implementar hardening en servicios críticos',\n    'Configurar monitoreo de red',\n    'Revisar políticas de firewall'\n  ]\n};\n\nconsole.log('📈 Estadísticas finales:');\nconsole.log(`   Hosts descubiertos: ${discoveryData.total_hosts_found}`);\nconsole.log(`   Hosts enumerados: ${statistics.successful_scans || 0}`);\nconsole.log(`   Puertos abiertos: ${statistics.total_open_ports || 0}`);\nconsole.log(`   Servicios únicos: ${serviceAnalysis.all_services.size}`);\nconsole.log(`   Puntuación de riesgo: ${executiveReport.risk_assessment.total_risk_score}`);\n\nreturn {\n  json: {\n    success: true,\n    phase: 'scan_complete',\n    executive_report: executiveReport,\n    detailed_results: {\n      discovery: discoveryData,\n      enumeration: enumerationResult,\n      service_analysis: {\n        web_services: serviceAnalysis.web_services,\n        database_services: serviceAnalysis.database_services,\n        remote_access: serviceAnalysis.remote_access,\n        critical_services: serviceAnalysis.critical_services,\n        all_services: Array.from(serviceAnalysis.all_services)\n      }\n    },\n    statistics: statistics,\n    execution_id: discoveryData.execution_id\n  }\n};"
+      },
+      "name": "Generate Final Report",
+      "type": "n8n-nodes-base.code",
+      "position": [1820, 200],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "name": "Return Success Results",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [2040, 200],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "name": "Return Discovery Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [1600, 400],
+      "typeVersion": 1
+    }
+  ],
+  "connections": {
+    "Start Network Scan": {
+      "main": [
+        [
+          {
+            "node": "Configure Scan Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configure Scan Parameters": {
+      "main": [
+        [
+          {
+            "node": "Network Discovery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Network Discovery": {
+      "main": [
+        [
+          {
+            "node": "Process Discovery Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Discovery Results": {
+      "main": [
+        [
+          {
+            "node": "Check Discovery Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Discovery Success": {
+      "main": [
+        [
+          {
+            "node": "Port Enumeration",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Discovery Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Port Enumeration": {
+      "main": [
+        [
+          {
+            "node": "Generate Final Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Final Report": {
+      "main": [
+        [
+          {
+            "node": "Return Success Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "id": "network-audit",
+      "name": "network-audit"
+    },
+    {
+      "id": "docker-optimized",
+      "name": "docker-optimized"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "2"
+}
