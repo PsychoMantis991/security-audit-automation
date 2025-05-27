@@ -64,7 +64,7 @@ services:
   kali:
     build:
       context: .
-      dockerfile: Dockerfile.kali
+      dockerfile: ./docker/dockerfile.kali
     restart: always
     volumes:
       - ./scripts:/opt/pentest/scripts
@@ -83,7 +83,7 @@ services:
   reporting:
     build:
       context: .
-      dockerfile: Dockerfile.reporting
+      dockerfile: ./docker/dockerfile.reporting
     restart: always
     volumes:
       - ./templates:/opt/reporting/templates
