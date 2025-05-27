@@ -76,7 +76,7 @@ Este sistema integra múltiples herramientas y scripts en un entorno Docker con 
 
 Clona este repositorio:
 ```bash
-git clone https://github.com/usuario/security-audit-system.git
+git clone https://github.com/PsychoMantis991/security-audit-automation.git
 cd security-audit-system
 ```
 
@@ -94,7 +94,7 @@ Accede a la interfaz web de n8n:
 
 Clona este repositorio:
 ```bash
-git clone https://github.com/tu-usuario/security-audit-automation.git
+git clone https://github.com/PsychoMantis991/security-audit-automation.git
 cd security-audit-automation
 ```
 Ejecuta el script de instalación:
@@ -114,7 +114,7 @@ Accede a la interfaz web:
 
 Clona este repositorio:
 ```bash
-git clone https://github.com/tu-usuario/security-audit-automation.git
+git clone https://github.com/PsychoMantis991/security-audit-automation.git
 cd security-audit-automation
 ```
 Ejecuta el script de configuración de EasyPanel:
