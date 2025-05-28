@@ -40,6 +40,10 @@ ENV PATH=$PATH:/root/go/bin
 ENV GOPROXY=https://proxy.golang.org,direct
 ENV GOSUMDB=sum.golang.org
 
+# Configurar Git para evitar warnings
+RUN git config --global user.email "docker@kali.local" && \
+    git config --global user.name "Kali Docker Build"
+
 # Instalación de Nuclei
 RUN go install -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest
 

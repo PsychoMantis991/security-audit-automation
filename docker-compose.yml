@@ -8,7 +8,7 @@ services:
       - "5678:5678"
     environment:
       - N8N_PORT=5678
-      - N8N_PROTOCOL=https  # ← CAMBIADO: Ahora usa HTTPS
+      - N8N_PROTOCOL=https
       - N8N_HOST=${N8N_HOST:-localhost}
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_HOST=postgres
@@ -18,10 +18,9 @@ services:
       - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD:-pentestpass}
       - N8N_ENCRYPTION_KEY=${ENCRYPTION_KEY:-pentestencryptionkey}
       - REDIS_HOST=redis
-      - WEBHOOK_URL=https://${N8N_HOST:-localhost}:5678/  # ← CAMBIADO: HTTPS
+      - WEBHOOK_URL=https://${N8N_HOST:-localhost}:5678/
       - N8N_LOG_LEVEL=debug
       - NODE_FUNCTION_ALLOW_EXTERNAL=true
-      # Configuración SSL
       - N8N_SSL_KEY=/certs/privkey.pem
       - N8N_SSL_CERT=/certs/fullchain.pem
     volumes:
@@ -31,12 +30,13 @@ services:
       - ./templates:/home/node/templates
       - ./reports:/home/node/reports
       - ./config:/home/node/config
-      - ./certs:/certs:ro  # ← AGREGADO: Volumen para certificados SSL
+      - ./certs:/certs:ro
     depends_on:
       - postgres
       - redis
       - kali
       - reporting
+      - cert-generator
 
   postgres:
     image: postgres:13
@@ -71,7 +71,7 @@ services:
       dockerfile: ./docker/dockerfile.kali
     restart: always
     ports:
-      - "8080:8080"  # Puerto para API de pentesting
+      - "8080:8080"
     volumes:
       - ./scripts:/opt/pentest/scripts
       - ./reports:/opt/pentest/reports
@@ -96,20 +96,27 @@ services:
       - ./reports:/opt/reporting/reports
       - ./config:/opt/reporting/config
 
-  # ← AGREGADO: Servicio para generar certificados SSL automáticamente
-  certbot:
-    image: certbot/certbot
+  cert-generator:
+    image: alpine/openssl
     volumes:
-      - ./certs:/etc/letsencrypt
-      - ./certbot-www:/var/www/certbot
+      - ./certs:/certs
+    environment:
+      - DOMAIN=${N8N_HOST:-localhost}
     command: >
-      sh -c "if [ ! -f /etc/letsencrypt/live/${N8N_HOST:-localhost}/fullchain.pem ]; then
-               echo 'Generando certificado auto-firmado para desarrollo...';
-               openssl req -x509 -nodes -days 365 -newkey rsa:2048 
-               -keyout /etc/letsencrypt/privkey.pem 
-               -out /etc/letsencrypt/fullchain.pem 
-               -subj '/C=ES/ST=State/L=City/O=Organization/CN=${N8N_HOST:-localhost}';
-             fi"
+      sh -c "
+        if [ ! -f /certs/fullchain.pem ] || [ ! -f /certs/privkey.pem ]; then
+          echo '🔒 Generando certificado SSL auto-firmado...';
+          openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+            -keyout /certs/privkey.pem \
+            -out /certs/fullchain.pem \
+            -subj '/C=ES/ST=Andalusia/L=Sevilla/O=Security Audit/CN=$${DOMAIN}' &&
+          chmod 644 /certs/*.pem &&
+          echo '✅ Certificados SSL generados correctamente';
+        else
+          echo '✅ Certificados SSL ya existen';
+        fi
+      "
+    restart: "no"
 
 volumes:
   n8n_data:
