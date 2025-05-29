@@ -1,0 +1,269 @@
+{
+  "enum-config.json": {
+    "deep_scan": true,
+    "service_detection": {
+      "version_intensity": 9,
+      "banner_grab": true,
+      "ssl_certificate_info": true,
+      "web_technology_detection": true
+    },
+    "network_discovery": {
+      "wifi_scan": true,
+      "vpn_detection": true,
+      "virtual_networks": true,
+      "docker_networks": true,
+      "routing_analysis": true
+    },
+    "sensitive_paths": [
+      "/.git/", "/.svn/", "/.env", "/.aws/", "/.ssh/",
+      "/wp-config.php.bak", "/config.php", "/database.yml",
+      "/backup/", "/admin/", "/phpmyadmin/", "/adminer/"
+    ],
+    "default_credentials": {
+      "ssh": [
+        ["root", "root"], ["admin", "admin"], ["user", "user"],
+        ["test", "test"], ["guest", "guest"], ["oracle", "oracle"]
+      ],
+      "ftp": [
+        ["anonymous", ""], ["ftp", "ftp"], ["admin", "admin"]
+      ],
+      "mysql": [
+        ["root", ""], ["root", "root"], ["admin", "admin"]
+      ],
+      "postgresql": [
+        ["postgres", "postgres"], ["admin", "admin"]
+      ]
+    },
+    "timeout_settings": {
+      "port_scan": 5,
+      "banner_grab": 10,
+      "service_probe": 15
+    }
+  },
+  
+  "exploit-config.json": {
+    "metasploit": {
+      "host": "localhost",
+      "port": 55553,
+      "password": "msf",
+      "ssl": true
+    },
+    "exploitation": {
+      "auto_exploit": true,
+      "prioritize_criticals": true,
+      "try_all_exploits": false,
+      "max_attempts_per_service": 3,
+      "delay_between_attempts": 5
+    },
+    "pivoting": {
+      "auto_pivot": true,
+      "max_pivot_depth": 3,
+      "discover_new_networks": true,
+      "setup_socks_proxy": true,
+      "preferred_pivot_methods": ["meterpreter", "ssh", "rdp"]
+    },
+    "post_exploitation": {
+      "privilege_escalation": true,
+      "credential_harvesting": true,
+      "persistence": false,
+      "lateral_movement": true,
+      "data_exfiltration": false
+    },
+    "network_discovery": {
+      "scan_discovered_networks": true,
+      "identify_network_services": true,
+      "map_network_topology": true,
+      "detect_security_devices": true
+    },
+    "exploit_modules": {
+      "windows": {
+        "ms17_010": {
+          "enabled": true,
+          "payload": "windows/x64/meterpreter/reverse_tcp"
+        },
+        "ms08_067": {
+          "enabled": true,
+          "payload": "windows/meterpreter/reverse_tcp"
+        }
+      },
+      "linux": {
+        "ssh_bruteforce": {
+          "enabled": true,
+          "wordlist": "/usr/share/wordlists/rockyou.txt",
+          "threads": 10
+        }
+      },
+      "web": {
+        "wordpress": {
+          "enabled": true,
+          "plugins_scan": true,
+          "themes_scan": true,
+          "users_enum": true
+        },
+        "joomla": {
+          "enabled": true,
+          "version_scan": true
+        }
+      }
+    }
+  },
+  
+  "pivot-config.json": {
+    "network_ranges": {
+      "internal": [
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16"
+      ],
+      "exclude": [
+        "127.0.0.0/8",
+        "169.254.0.0/16"
+      ]
+    },
+    "tunnel_options": {
+      "socks_ports": [1080, 1081, 1082],
+      "ssh_dynamic_forward": true,
+      "rdp_tunnel": true,
+      "vpn_hijack": false
+    },
+    "discovery_methods": [
+      "arp_scan",
+      "ping_sweep",
+      "port_scan",
+      "broadcast_discovery",
+      "snmp_walk"
+    ],
+    "lateral_movement": {
+      "methods": ["psexec", "wmi", "ssh", "rdp", "smb"],
+      "credential_reuse": true,
+      "hash_passing": true,
+      "kerberos_tickets": true
+    }
+  },
+  
+  "network-discovery-config.json": {
+    "wifi": {
+      "enabled": true,
+      "scan_hidden_networks": true,
+      "crack_wep": false,
+      "crack_wpa": false,
+      "save_handshakes": true
+    },
+    "vpn": {
+      "detect_types": ["openvpn", "ipsec", "wireguard", "pptp", "l2tp"],
+      "extract_configs": true,
+      "test_credentials": false
+    },
+    "virtual_networks": {
+      "docker": true,
+      "kubernetes": true,
+      "vmware": true,
+      "virtualbox": true,
+      "kvm": true
+    },
+    "advanced_discovery": {
+      "vlan_hopping": false,
+      "ipv6_discovery": true,
+      "multicast_analysis": true,
+      "cdp_lldp_discovery": true
+    }
+  },
+  
+  "docker-compose.yml": {
+    "version": "3.8",
+    "services": {
+      "n8n": {
+        "image": "n8nio/n8n",
+        "container_name": "n8n",
+        "restart": "always",
+        "ports": ["5678:5678"],
+        "environment": {
+          "N8N_BASIC_AUTH_ACTIVE": "true",
+          "N8N_BASIC_AUTH_USER": "admin",
+          "N8N_BASIC_AUTH_PASSWORD": "changeme",
+          "N8N_HOST": "localhost",
+          "N8N_PORT": "5678",
+          "N8N_PROTOCOL": "http",
+          "NODE_ENV": "production",
+          "WEBHOOK_URL": "http://localhost:5678/",
+          "GENERIC_TIMEZONE": "UTC"
+        },
+        "volumes": [
+          "./n8n_data:/home/node/.n8n",
+          "./workflows:/workflows",
+          "./scripts:/scripts",
+          "./reports:/reports",
+          "/var/run/docker.sock:/var/run/docker.sock"
+        ],
+        "networks": ["pentest_network"]
+      },
+      
+      "kali": {
+        "build": {
+          "context": ".",
+          "dockerfile": "docker/Dockerfile.kali"
+        },
+        "container_name": "kali-pentest",
+        "restart": "unless-stopped",
+        "privileged": true,
+        "cap_add": ["NET_ADMIN", "SYS_ADMIN"],
+        "network_mode": "host",
+        "volumes": [
+          "./scripts:/opt/pentest/scripts",
+          "./reports:/opt/pentest/reports",
+          "./temp:/opt/pentest/temp",
+          "./config:/opt/pentest/config",
+          "./wordlists:/opt/pentest/wordlists"
+        ],
+        "environment": {
+          "DISPLAY": ":0"
+        }
+      },
+      
+      "metasploit": {
+        "image": "metasploitframework/metasploit-framework",
+        "container_name": "metasploit",
+        "restart": "unless-stopped",
+        "ports": ["55553:55553"],
+        "environment": {
+          "MSF_RPC_PASS": "msf"
+        },
+        "command": ["./msfconsole", "-x", "load msgrpc Pass=msf"],
+        "networks": ["pentest_network"]
+      },
+      
+      "postgres": {
+        "image": "postgres:13",
+        "container_name": "postgres-pentest",
+        "restart": "always",
+        "environment": {
+          "POSTGRES_USER": "pentest",
+          "POSTGRES_PASSWORD": "pentest123",
+          "POSTGRES_DB": "pentest_results"
+        },
+        "volumes": [
+          "./postgres_data:/var/lib/postgresql/data"
+        ],
+        "networks": ["pentest_network"]
+      },
+      
+      "redis": {
+        "image": "redis:alpine",
+        "container_name": "redis-pentest",
+        "restart": "always",
+        "networks": ["pentest_network"]
+      }
+    },
+    
+    "networks": {
+      "pentest_network": {
+        "driver": "bridge",
+        "ipam": {
+          "config": [
+            {"subnet": "172.20.0.0/16"}
+          ]
+        }
+      }
+    }
+  }
+}

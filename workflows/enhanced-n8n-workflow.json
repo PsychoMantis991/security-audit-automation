@@ -1,0 +1,217 @@
+{
+  "name": "03-deep-audit-with-pivoting",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start-node",
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Configuración inicial del workflow\nconst config = {\n  target_network: $json.target || '192.168.1.0/24',\n  scan_intensity: $json.intensity || 'aggressive',\n  enable_pivoting: $json.pivoting !== false,\n  max_pivot_depth: $json.max_depth || 3,\n  exploit_options: {\n    auto_exploit: true,\n    privilege_escalation: true,\n    lateral_movement: true\n  }\n};\n\nreturn [{ json: config }];"
+      },
+      "id": "config-node",
+      "name": "Configure Audit",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "command": "cd /opt/pentest && python3 scripts/port-discovery.py {{$json.target_network}} --intensity {{$json.scan_intensity}} --evasion advanced",
+        "cwd": "/opt/pentest"
+      },
+      "id": "port-scan",
+      "name": "Advanced Port Discovery",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Parsear resultados del escaneo\nconst scanOutput = $json.stdout;\nconst hosts = [];\n\n// Extraer hosts activos\nconst lines = scanOutput.split('\\n');\nfor (const line of lines) {\n  if (line.includes('Host:') && line.includes('Status: up')) {\n    const match = line.match(/Host:\\s*([\\d.]+)/);\n    if (match) {\n      hosts.push({ ip: match[1], status: 'active' });\n    }\n  }\n}\n\nreturn hosts.map(host => ({ json: host }));"
+      },
+      "id": "parse-hosts",
+      "name": "Parse Active Hosts",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "split-hosts",
+      "name": "Split by Host",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "command": "cd /opt/pentest && python3 scripts/enhanced-service-enum.py {{$json.ip}} --deep-scan --save-results",
+        "cwd": "/opt/pentest"
+      },
+      "id": "deep-enum",
+      "name": "Deep Service Enumeration",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Parsear resultados de enumeración\nconst enumFile = `enum_results_${$json.ip.replace(/\\./g, '_')}.json`;\nconst fs = require('fs');\n\ntry {\n  const enumData = JSON.parse(fs.readFileSync(`/opt/pentest/${enumFile}`, 'utf8'));\n  \n  // Agregar información del host\n  enumData.host = $json.ip;\n  enumData.scan_complete = true;\n  \n  // Identificar vectores de ataque\n  enumData.attack_vectors = [];\n  \n  // Verificar servicios vulnerables\n  for (const [port, service] of Object.entries(enumData.services || {})) {\n    if (service.state === 'open') {\n      // SSH con credenciales débiles\n      if (service.name === 'ssh') {\n        enumData.attack_vectors.push({\n          type: 'credential',\n          service: 'ssh',\n          port: port,\n          priority: 'high'\n        });\n      }\n      \n      // SMB vulnerable\n      if (service.name === 'microsoft-ds' && service.version) {\n        enumData.attack_vectors.push({\n          type: 'vulnerability',\n          service: 'smb',\n          port: port,\n          priority: 'critical'\n        });\n      }\n      \n      // Servicios web\n      if (service.name.includes('http')) {\n        enumData.attack_vectors.push({\n          type: 'web',\n          service: service.name,\n          port: port,\n          priority: 'medium'\n        });\n      }\n    }\n  }\n  \n  return [{ json: enumData }];\n} catch (error) {\n  return [{ json: { error: error.message, host: $json.ip } }];\n}"
+      },
+      "id": "analyze-vulns",
+      "name": "Analyze Vulnerabilities",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.attack_vectors.length}}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "check-exploitable",
+      "name": "Is Exploitable?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1650, 300]
+    },
+    {
+      "parameters": {
+        "command": "cd /opt/pentest && python3 scripts/auto-exploit-pivot.py enum_results_{{$json.host.replace(/\\./g, '_')}}.json --auto-pivot --discover-networks",
+        "cwd": "/opt/pentest"
+      },
+      "id": "auto-exploit",
+      "name": "Auto Exploit & Pivot",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1850, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Parsear resultados de explotación\nconst exploitOutput = $json.stdout;\nconst exploitFile = `exploit_results_enum_results_${$json.host.replace(/\\./g, '_')}_exploited.json`;\nconst fs = require('fs');\n\ntry {\n  const exploitData = JSON.parse(fs.readFileSync(`/opt/pentest/${exploitFile}`, 'utf8'));\n  \n  // Procesar nuevas redes descubiertas\n  const newNetworks = exploitData.discovered_networks || [];\n  const pivotPoints = exploitData.pivot_chains || [];\n  \n  // Generar tareas para nuevas redes\n  const tasks = [];\n  \n  if (newNetworks.length > 0) {\n    console.log(`[+] Nuevas redes descubiertas: ${newNetworks.join(', ')}`);\n    \n    for (const network of newNetworks) {\n      tasks.push({\n        json: {\n          target_network: network,\n          pivot_host: $json.host,\n          pivot_method: pivotPoints[0]?.method || 'direct',\n          scan_intensity: 'stealth',\n          parent_network: $json.target_network\n        }\n      });\n    }\n  }\n  \n  // Agregar información de movimiento lateral\n  if (exploitData.lateral_movements?.length > 0) {\n    for (const lateral of exploitData.lateral_movements) {\n      tasks.push({\n        json: {\n          target_host: lateral.host,\n          via_pivot: $json.host,\n          exploit_method: lateral.method\n        }\n      });\n    }\n  }\n  \n  return tasks.length > 0 ? tasks : [{ json: { status: 'no_new_targets' } }];\n} catch (error) {\n  return [{ json: { error: error.message } }];\n}"
+      },
+      "id": "process-pivots",
+      "name": "Process Pivot Results",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [2050, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.target_network}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "check-new-networks",
+      "name": "New Networks Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2250, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Recopilar todos los resultados\nconst allResults = {\n  scan_summary: {\n    initial_target: $node['config-node'].json.target_network,\n    total_hosts_scanned: 0,\n    exploited_hosts: [],\n    discovered_networks: [],\n    pivot_chains: [],\n    credentials_found: []\n  },\n  detailed_results: []\n};\n\n// Agregar resultados de cada nodo\nconst items = $items();\nfor (const item of items) {\n  if (item.json.exploited_hosts) {\n    allResults.scan_summary.exploited_hosts.push(...item.json.exploited_hosts);\n  }\n  if (item.json.discovered_networks) {\n    allResults.scan_summary.discovered_networks.push(...item.json.discovered_networks);\n  }\n  allResults.detailed_results.push(item.json);\n}\n\nallResults.scan_summary.total_hosts_scanned = allResults.detailed_results.length;\n\nreturn [{ json: allResults }];"
+      },
+      "id": "aggregate-results",
+      "name": "Aggregate All Results",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [2450, 400]
+    },
+    {
+      "parameters": {
+        "command": "cd /opt/pentest && python3 scripts/generate_report.py --template advanced --include-pivot-diagram --output-format html,pdf",
+        "cwd": "/opt/pentest"
+      },
+      "id": "generate-report",
+      "name": "Generate Advanced Report",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2650, 400]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Limpieza y notificación\nconst reportPath = `/opt/pentest/reports/audit_report_${new Date().toISOString().split('T')[0]}.html`;\n\nreturn [{\n  json: {\n    status: 'completed',\n    report_location: reportPath,\n    summary: $json.scan_summary,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "finalize",
+      "name": "Finalize Audit",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [2850, 400]
+    }
+  ],
+  "connections": {
+    "start-node": {
+      "main": [[{ "node": "config-node", "type": "main", "index": 0 }]]
+    },
+    "config-node": {
+      "main": [[{ "node": "port-scan", "type": "main", "index": 0 }]]
+    },
+    "port-scan": {
+      "main": [[{ "node": "parse-hosts", "type": "main", "index": 0 }]]
+    },
+    "parse-hosts": {
+      "main": [[{ "node": "split-hosts", "type": "main", "index": 0 }]]
+    },
+    "split-hosts": {
+      "main": [[{ "node": "deep-enum", "type": "main", "index": 0 }]]
+    },
+    "deep-enum": {
+      "main": [[{ "node": "analyze-vulns", "type": "main", "index": 0 }]]
+    },
+    "analyze-vulns": {
+      "main": [[{ "node": "check-exploitable", "type": "main", "index": 0 }]]
+    },
+    "check-exploitable": {
+      "main": [
+        [{ "node": "auto-exploit", "type": "main", "index": 0 }],
+        [{ "node": "aggregate-results", "type": "main", "index": 0 }]
+      ]
+    },
+    "auto-exploit": {
+      "main": [[{ "node": "process-pivots", "type": "main", "index": 0 }]]
+    },
+    "process-pivots": {
+      "main": [[{ "node": "check-new-networks", "type": "main", "index": 0 }]]
+    },
+    "check-new-networks": {
+      "main": [
+        [{ "node": "port-scan", "type": "main", "index": 0 }],
+        [{ "node": "aggregate-results", "type": "main", "index": 0 }]
+      ]
+    },
+    "aggregate-results": {
+      "main": [[{ "node": "generate-report", "type": "main", "index": 0 }]]
+    },
+    "generate-report": {
+      "main": [[{ "node": "finalize", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionTimeout": 7200,
+    "maxExecutionTime": 7200,
+    "saveExecutionProgress": true
+  },
+  "tags": ["security", "audit", "pivoting", "advanced"]
+}
