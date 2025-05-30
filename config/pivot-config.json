@@ -1,0 +1,135 @@
+{
+  "max_concurrent_scans": 3,
+  "tunnel_timeout": 300,
+  "socks_proxy_base_port": 9050,
+  "ssh_tunnel_options": "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null",
+  
+  "network_discovery": {
+    "scan_private_ranges": true,
+    "scan_docker_networks": true,
+    "scan_vpn_networks": true,
+    "max_network_size": "/16",
+    "exclude_networks": [
+      "127.0.0.0/8",
+      "169.254.0.0/16",
+      "224.0.0.0/4"
+    ]
+  },
+  
+  "access_methods": {
+    "ssh": {
+      "default_port": 22,
+      "key_files": [
+        "/root/.ssh/id_rsa",
+        "/opt/pentest/keys/pivot_key"
+      ],
+      "timeout": 30,
+      "retries": 3
+    },
+    "winrm": {
+      "default_port": 5985,
+      "ssl_port": 5986,
+      "timeout": 30,
+      "retries": 3
+    },
+    "smb": {
+      "default_port": 445,
+      "timeout": 30,
+      "retries": 3
+    }
+  },
+  
+  "discovery_commands": {
+    "linux": {
+      "interfaces": [
+        "ip addr show",
+        "ifconfig -a",
+        "cat /proc/net/dev"
+      ],
+      "routes": [
+        "ip route show",
+        "route -n",
+        "netstat -rn"
+      ],
+      "arp": [
+        "ip neigh show",
+        "arp -a",
+        "cat /proc/net/arp"
+      ],
+      "wireless": [
+        "iwconfig",
+        "iw dev",
+        "nmcli dev wifi list"
+      ],
+      "vpn": [
+        "ps aux | grep -E '(openvpn|wireguard|ipsec|pptp|l2tp)'",
+        "ip tunnel show",
+        "cat /proc/net/dev | grep tun"
+      ],
+      "docker": [
+        "docker network ls",
+        "ip addr | grep docker",
+        "cat /proc/net/dev | grep docker"
+      ]
+    },
+    "windows": {
+      "interfaces": [
+        "ipconfig /all",
+        "Get-NetAdapter | fl",
+        "wmic path win32_networkadapter get *"
+      ],
+      "routes": [
+        "route print",
+        "Get-NetRoute | fl",
+        "netstat -rn"
+      ],
+      "arp": [
+        "arp -a",
+        "Get-NetNeighbor | fl"
+      ],
+      "wireless": [
+        "netsh wlan show profiles",
+        "netsh wlan show profile * key=clear",
+        "Get-NetAdapter -Name '*Wi-Fi*' | fl"
+      ],
+      "vpn": [
+        "Get-VpnConnection",
+        "rasdial",
+        "Get-NetAdapter -Name '*VPN*' | fl"
+      ],
+      "network_shares": [
+        "net view",
+        "Get-SmbShare | fl",
+        "Get-SmbConnection | fl"
+      ]
+    }
+  },
+  
+  "tunnel_methods": {
+    "ssh_socks": {
+      "enabled": true,
+      "dynamic_port": true,
+      "compression": true,
+      "keep_alive": 60
+    },
+    "ssh_forward": {
+      "enabled": true,
+      "local_forwards": [],
+      "remote_forwards": []
+    },
+    "chisel": {
+      "enabled": true,
+      "server_port": 8080,
+      "client_connect_back": true
+    },
+    "socat": {
+      "enabled": true,
+      "relay_ports": []
+    }
+  },
+  
+  "auto_scan_new_networks": true,
+  "max_pivot_depth": 3,
+  "preserve_tunnels": true,
+  "cleanup_on_exit": false
+}

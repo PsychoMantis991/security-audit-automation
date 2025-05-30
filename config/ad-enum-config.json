@@ -1,0 +1,136 @@
+{
+  "ldap_settings": {
+    "timeout": 30,
+    "max_entries": 1000,
+    "page_size": 100,
+    "anonymous_bind": true,
+    "ssl_verify": false
+  },
+  
+  "enumeration_scope": {
+    "enumerate_users": true,
+    "enumerate_groups": true,
+    "enumerate_computers": true,
+    "enumerate_gpos": true,
+    "enumerate_domain_trusts": true,
+    "enumerate_spns": true,
+    "check_vulnerabilities": true
+  },
+  
+  "ldap_queries": {
+    "all_users": "(&(objectClass=person)(objectClass=user))",
+    "enabled_users": "(&(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))",
+    "admin_users": "(&(objectClass=user)(adminCount=1))",
+    "service_accounts": "(&(objectClass=user)(servicePrincipalName=*))",
+    "asrep_roastable": "(&(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=4194304))",
+    "password_never_expires": "(&(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=65536))",
+    "password_not_required": "(&(objectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=32))",
+    "all_groups": "(objectClass=group)",
+    "privileged_groups": "(|(cn=Domain Admins)(cn=Enterprise Admins)(cn=Schema Admins)(cn=Administrators))",
+    "all_computers": "(objectClass=computer)",
+    "domain_controllers": "(&(objectClass=computer)(userAccountControl:1.2.840.113556.1.4.803:=8192))",
+    "gpos": "(objectClass=groupPolicyContainer)",
+    "domain_trusts": "(objectClass=trustedDomain)"
+  },
+  
+  "user_attributes": [
+    "cn", "sAMAccountName", "userPrincipalName", "displayName", "description",
+    "userAccountControl", "pwdLastSet", "lastLogon", "lastLogonTimestamp",
+    "logonCount", "badPwdCount", "memberOf", "adminCount", "servicePrincipalName",
+    "mail", "telephoneNumber", "physicalDeliveryOfficeName", "title",
+    "department", "company", "manager", "employeeID", "whenCreated", "whenChanged"
+  ],
+  
+  "group_attributes": [
+    "cn", "sAMAccountName", "displayName", "description", "member", "memberOf",
+    "adminCount", "groupType", "whenCreated", "whenChanged"
+  ],
+  
+  "computer_attributes": [
+    "cn", "sAMAccountName", "dNSHostName", "operatingSystem", "operatingSystemVersion",
+    "operatingSystemServicePack", "lastLogon", "lastLogonTimestamp", "pwdLastSet",
+    "servicePrincipalName", "userAccountControl", "whenCreated", "whenChanged",
+    "location", "managedBy"
+  ],
+  
+  "privileged_groups": [
+    "Domain Admins", "Enterprise Admins", "Schema Admins", "Administrators",
+    "Backup Operators", "Server Operators", "Account Operators", "Print Operators",
+    "Replicator", "Enterprise Key Admins", "Key Admins", "Protected Users",
+    "DHCP Administrators", "DNS Admins", "Hyper-V Administrators"
+  ],
+  
+  "interesting_spns": [
+    "HTTP", "MSSQL", "MYSQL", "FTP", "IMAP", "POP", "SMTP", "LDAP",
+    "SIP", "Exchangedb", "TERMSRV", "WSMAN", "RestrictedKrbHost", "HOST"
+  ],
+  
+  "vulnerability_checks": {
+    "zerologon": {
+      "enabled": true,
+      "tool": "zerologon_tester.py",
+      "timeout": 60
+    },
+    "ms14_068": {
+      "enabled": true,
+      "tool": "ms14-068.py",
+      "timeout": 30
+    },
+    "printnightmare": {
+      "enabled": true,
+      "tool": "printnightmare_check.py",
+      "timeout": 45
+    },
+    "petitpotam": {
+      "enabled": true,
+      "tool": "petitpotam.py",
+      "timeout": 30
+    },
+    "nopac": {
+      "enabled": true,
+      "tool": "nopac.py",
+      "timeout": 60
+    }
+  },
+  
+  "bloodhound_settings": {
+    "enabled": true,
+    "collection_methods": ["all"],
+    "exclude_dcs": false,
+    "zip_output": true,
+    "timeout": 300
+  },
+  
+  "tools_paths": {
+    "bloodhound": "bloodhound-python",
+    "enum4linux": "enum4linux",
+    "smbclient": "smbclient",
+    "rpcclient": "rpcclient",
+    "crackmapexec": "crackmapexec",
+    "impacket_scripts": "/opt/impacket/examples"
+  },
+  
+  "output_settings": {
+    "save_raw_ldap": true,
+    "generate_csv": true,
+    "generate_html_report": true,
+    "include_empty_attributes": false,
+    "max_file_size_mb": 100
+  },
+  
+  "password_policy_analysis": {
+    "check_weak_policies": true,
+    "minimum_length_threshold": 8,
+    "complexity_required": true,
+    "max_age_days_threshold": 90,
+    "lockout_threshold_minimum": 3
+  },
+  
+  "kerberos_settings": {
+    "check_preauth": true,
+    "check_spns": true,
+    "kerberoast_enabled": true,
+    "asreproast_enabled": true,
+    "save_tickets": true
+  }
+}

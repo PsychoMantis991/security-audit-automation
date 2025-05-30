@@ -1,0 +1,81 @@
+{
+  "max_threads": 5,
+  "timeout": 30,
+  "ssh_bruteforce": false,
+  "smb_bruteforce": false,
+  "web_deep_scan": true,
+  
+  "default_credentials": [
+    {"username": "admin", "password": "admin"},
+    {"username": "admin", "password": "password"},
+    {"username": "administrator", "password": "administrator"},
+    {"username": "root", "password": "root"},
+    {"username": "guest", "password": ""},
+    {"username": "user", "password": "user"},
+    {"username": "test", "password": "test"}
+  ],
+  
+  "snmp_communities": [
+    "public", "private", "community", "read", "write", 
+    "admin", "manager", "cisco", "default"
+  ],
+  
+  "web_directories": [
+    "/admin", "/administrator", "/login", "/wp-admin", "/wp-login.php",
+    "/phpmyadmin", "/phpinfo.php", "/robots.txt", "/sitemap.xml",
+    "/.git", "/.env", "/.htaccess", "/config", "/backup",
+    "/test", "/demo", "/api", "/v1", "/v2", "/docs",
+    "/swagger", "/console", "/manager", "/status"
+  ],
+  
+  "dns_domains": [
+    "localhost", "local", "internal", "corp", "domain.com",
+    "company.local", "ad.local", "dc.local"
+  ],
+  
+  "smb_shares_check": [
+    "C$", "ADMIN$", "IPC$", "SYSVOL", "NETLOGON", 
+    "Users", "Share", "Public", "Downloads"
+  ],
+  
+  "service_specific_config": {
+    "ftp": {
+      "check_anonymous": true,
+      "check_bounce": true,
+      "max_files_list": 50
+    },
+    "ssh": {
+      "grab_banner": true,
+      "check_auth_methods": true,
+      "bruteforce_enabled": false
+    },
+    "web": {
+      "follow_redirects": true,
+      "check_ssl": true,
+      "technology_detection": true,
+      "directory_bruteforce": true,
+      "max_directories": 100
+    },
+    "smb": {
+      "check_null_session": true,
+      "check_guest": true,
+      "enumerate_shares": true,
+      "check_writable": true
+    },
+    "ldap": {
+      "anonymous_bind": true,
+      "enumerate_users": true,
+      "enumerate_groups": true,
+      "enumerate_computers": true,
+      "max_entries": 100
+    },
+    "snmp": {
+      "version": "2c",
+      "walk_oids": [
+        "1.3.6.1.2.1.1.1.0",
+        "1.3.6.1.2.1.1.5.0",
+        "1.3.6.1.2.1.25.1.6.0"
+      ]
+    }
+  }
+}

@@ -1,0 +1,404 @@
+{
+  "name": "03-Advanced-Pentest-Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "targets",
+              "value": "={{ $json.targets }}"
+            },
+            {
+              "name": "intensity",
+              "value": "={{ $json.intensity || 'medium' }}"
+            },
+            {
+              "name": "scope",
+              "value": "={{ $json.scope || 'full' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "start-node",
+      "name": "Workflow Start",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "command": "python3 /opt/pentest/scripts/advanced-workflow-orchestrator.py {{ $json.targets }} {{ $json.intensity }}",
+        "additionalFields": {
+          "workingDirectory": "/opt/pentest"
+        }
+      },
+      "id": "orchestrator-node",
+      "name": "Advanced Orchestrator",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.returnCode }}",
+              "operation": "equal",
+              "value2": "0"
+            }
+          ]
+        }
+      },
+      "id": "check-success",
+      "name": "Check Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "command": "python3 /opt/pentest/scripts/deep-service-enum.py {{ $json.target_ip }} {{ $json.ports_file }}",
+        "additionalFields": {
+          "workingDirectory": "/opt/pentest"
+        }
+      },
+      "id": "deep-enum-node",
+      "name": "Deep Service Enumeration",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "command": "python3 /opt/pentest/scripts/ad-user-enum.py {{ $json.target_ip }}",
+        "additionalFields": {
+          "workingDirectory": "/opt/pentest"
+        }
+      },
+      "id": "ad-enum-node",
+      "name": "Active Directory Enumeration",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "command": "python3 /opt/pentest/scripts/network-pivot.py {{ $json.target_ip }} {{ $json.access_method }} {{ $json.credentials_file }}",
+        "additionalFields": {
+          "workingDirectory": "/opt/pentest"
+        }
+      },
+      "id": "pivot-node",
+      "name": "Network Pivoting",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "command": "python3 /opt/pentest/scripts/exploit-dispatcher.py {{ $json.target_ip }}",
+        "additionalFields": {
+          "workingDirectory": "/opt/pentest"
+        }
+      },
+      "id": "exploit-node",
+      "name": "Exploitation",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "command": "python3 /opt/pentest/scripts/post-exploitation.py {{ $json.target_ip }} {{ $json.access_method }}",
+        "additionalFields": {
+          "workingDirectory": "/opt/pentest"
+        }
+      },
+      "id": "post-exploit-node",
+      "name": "Post Exploitation",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "command": "python3 /opt/pentest/scripts/privilege-escalation.py {{ $json.target_ip }}",
+        "additionalFields": {
+          "workingDirectory": "/opt/pentest"
+        }
+      },
+      "id": "privesc-node",
+      "name": "Privilege Escalation",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "command": "python3 /opt/pentest/scripts/lateral-movement.py {{ $json.target_ip }}",
+        "additionalFields": {
+          "workingDirectory": "/opt/pentest"
+        }
+      },
+      "id": "lateral-node",
+      "name": "Lateral Movement",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "command": "python3 /opt/pentest/scripts/generate_advanced_report.py",
+        "additionalFields": {
+          "workingDirectory": "/opt/pentest"
+        }
+      },
+      "id": "report-node",
+      "name": "Generate Advanced Report",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2000, 300]
+    },
+    {
+      "parameters": {
+        "command": "python3 /opt/pentest/scripts/evidence-cleanup.py",
+        "additionalFields": {
+          "workingDirectory": "/opt/pentest"
+        }
+      },
+      "id": "cleanup-node",
+      "name": "Evidence Cleanup",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [2220, 300]
+    },
+    {
+      "parameters": {
+        "options": {
+          "contentType": "application/json"
+        }
+      },
+      "id": "webhook-node",
+      "name": "Webhook Results",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [2440, 300],
+      "webhookId": "advanced-pentest-complete"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "failed"
+            },
+            {
+              "name": "error",
+              "value": "={{ $json.stderr }}"
+            }
+          ]
+        }
+      },
+      "id": "error-node",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [680, 500]
+    },
+    {
+      "parameters": {
+        "subject": "Pentest Failed - {{ $json.targets }}",
+        "text": "Error en el pentest: {{ $json.error }}",
+        "options": {}
+      },
+      "id": "email-error",
+      "name": "Email Error Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [900, 500]
+    }
+  ],
+  "connections": {
+    "Workflow Start": {
+      "main": [
+        [
+          {
+            "node": "Advanced Orchestrator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Advanced Orchestrator": {
+      "main": [
+        [
+          {
+            "node": "Check Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Success": {
+      "main": [
+        [
+          {
+            "node": "Deep Service Enumeration",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Active Directory Enumeration",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Network Pivoting",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deep Service Enumeration": {
+      "main": [
+        [
+          {
+            "node": "Exploitation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Active Directory Enumeration": {
+      "main": [
+        [
+          {
+            "node": "Exploitation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Network Pivoting": {
+      "main": [
+        [
+          {
+            "node": "Exploitation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Exploitation": {
+      "main": [
+        [
+          {
+            "node": "Post Exploitation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Exploitation": {
+      "main": [
+        [
+          {
+            "node": "Privilege Escalation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Privilege Escalation": {
+      "main": [
+        [
+          {
+            "node": "Lateral Movement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lateral Movement": {
+      "main": [
+        [
+          {
+            "node": "Generate Advanced Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Advanced Report": {
+      "main": [
+        [
+          {
+            "node": "Evidence Cleanup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evidence Cleanup": {
+      "main": [
+        [
+          {
+            "node": "Webhook Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Handler": {
+      "main": [
+        [
+          {
+            "node": "Email Error Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "advanced-pentest-workflow",
+  "tags": [
+    {
+      "createdAt": "2025-05-30T00:00:00.000Z",
+      "updatedAt": "2025-05-30T00:00:00.000Z",
+      "id": "pentest",
+      "name": "pentest"
+    }
+  ]
+}

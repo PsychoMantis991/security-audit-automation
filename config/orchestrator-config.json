@@ -1,0 +1,138 @@
+{
+  "max_concurrent_scans": 5,
+  "max_concurrent_enums": 3,
+  "max_concurrent_exploits": 2,
+  "global_timeout": 7200,
+  
+  "phase_timeouts": {
+    "reconnaissance": 1800,
+    "deep_enumeration": 2700,
+    "ad_detection": 1200,
+    "exploitation": 1800,
+    "post_exploitation": 1800,
+    "network_discovery": 1200,
+    "privilege_escalation": 900,
+    "reporting": 300
+  },
+  
+  "intensity_settings": {
+    "low": {
+      "max_threads": 2,
+      "scan_delay": 5,
+      "enum_timeout": 300,
+      "exploit_timeout": 300,
+      "stealth_mode": true
+    },
+    "medium": {
+      "max_threads": 5,
+      "scan_delay": 2,
+      "enum_timeout": 600,
+      "exploit_timeout": 600,
+      "stealth_mode": false
+    },
+    "high": {
+      "max_threads": 10,
+      "scan_delay": 0.5,
+      "enum_timeout": 900,
+      "exploit_timeout": 900,
+      "stealth_mode": false
+    }
+  },
+  
+  "auto_progression": {
+    "enabled": true,
+    "wait_for_phase_completion": true,
+    "continue_on_failures": true,
+    "max_retries_per_host": 3,
+    "retry_delay": 60
+  },
+  
+  "target_prioritization": {
+    "enabled": true,
+    "priority_ports": [22, 23, 80, 443, 445, 3389, 5985],
+    "priority_services": ["ssh", "http", "https", "smb", "rdp", "winrm"],
+    "deprioritize_honeypots": true
+  },
+  
+  "exploitation_strategy": {
+    "prefer_remote_exploits": true,
+    "attempt_credential_attacks": true,
+    "use_default_credentials": true,
+    "brute_force_enabled": false,
+    "social_engineering": false
+  },
+  
+  "post_exploitation_actions": {
+    "enumerate_local_users": true,
+    "enumerate_network_shares": true,
+    "search_for_credentials": true,
+    "dump_hashes": true,
+    "establish_persistence": false,
+    "lateral_movement": true,
+    "privilege_escalation": true
+  },
+  
+  "network_discovery_settings": {
+    "auto_scan_new_networks": true,
+    "max_network_size": "/16",
+    "scan_private_ranges_only": true,
+    "exclude_ranges": [
+      "127.0.0.0/8",
+      "169.254.0.0/16",
+      "224.0.0.0/4"
+    ],
+    "discovery_methods": ["arp", "ping_sweep", "tcp_connect"]
+  },
+  
+  "active_directory_settings": {
+    "auto_detect_ad": true,
+    "enumerate_all_objects": true,
+    "check_gpo_vulnerabilities": true,
+    "dump_ntds": false,
+    "kerberoast": true,
+    "asreproast": true,
+    "bloodhound_collection": true
+  },
+  
+  "evasion_settings": {
+    "randomize_scan_order": true,
+    "use_decoy_scans": false,
+    "fragment_packets": true,
+    "randomize_source_ports": true,
+    "use_proxies": false,
+    "timing_randomization": true
+  },
+  
+  "output_settings": {
+    "save_intermediate_results": true,
+    "compress_large_files": true,
+    "encrypt_sensitive_data": false,
+    "generate_timeline": true,
+    "include_screenshots": true,
+    "max_log_size_mb": 500
+  },
+  
+  "cleanup_settings": {
+    "auto_cleanup": false,
+    "preserve_evidence": true,
+    "remove_temp_files": true,
+    "close_connections": true,
+    "restore_original_state": false
+  },
+  
+  "notification_settings": {
+    "slack_webhook": "",
+    "email_notifications": false,
+    "sms_notifications": false,
+    "notify_on_completion": true,
+    "notify_on_compromise": true,
+    "notify_on_errors": false
+  },
+  
+  "integration_settings": {
+    "metasploit_integration": true,
+    "burp_suite_integration": false,
+    "nessus_integration": false,
+    "custom_tools": []
+  }
+}
