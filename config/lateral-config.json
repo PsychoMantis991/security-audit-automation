@@ -1,0 +1,241 @@
+{
+  "general_settings": {
+    "max_concurrent_movements": 3,
+    "connection_timeout": 30,
+    "retry_attempts": 2,
+    "stealth_mode": true,
+    "random_delays": true,
+    "preserve_timestamps": true
+  },
+  
+  "discovery_settings": {
+    "ping_sweep_enabled": true,
+    "port_scan_enabled": true,
+    "arp_table_analysis": true,
+    "dns_enumeration": true,
+    "network_share_discovery": true,
+    "max_hosts_per_network": 100
+  },
+  
+  "target_prioritization": {
+    "high_priority_ports": [22, 445, 3389, 5985],
+    "medium_priority_ports": [23, 80, 443, 139, 389],
+    "low_priority_ports": [21, 25, 53, 110, 143],
+    "avoid_honeypots": true,
+    "prefer_windows_targets": false
+  },
+  
+  "credential_attacks": {
+    "password_reuse": true,
+    "hash_reuse": true,
+    "ticket_reuse": true,
+    "default_credentials": true,
+    "brute_force": false,
+    "dictionary_attack": false
+  },
+  
+  "default_credentials": [
+    {
+      "username": "administrator",
+      "password": "administrator",
+      "os": "windows",
+      "service": "smb"
+    },
+    {
+      "username": "admin",
+      "password": "admin",
+      "os": "both",
+      "service": "all"
+    },
+    {
+      "username": "root",
+      "password": "root",
+      "os": "linux",
+      "service": "ssh"
+    },
+    {
+      "username": "administrator",
+      "password": "password",
+      "os": "windows",
+      "service": "rdp"
+    },
+    {
+      "username": "administrator",
+      "password": "",
+      "os": "windows",
+      "service": "smb"
+    },
+    {
+      "username": "guest",
+      "password": "",
+      "os": "windows",
+      "service": "smb"
+    },
+    {
+      "username": "admin",
+      "password": "password",
+      "os": "both",
+      "service": "all"
+    },
+    {
+      "username": "service",
+      "password": "service",
+      "os": "both",
+      "service": "all"
+    },
+    {
+      "username": "user",
+      "password": "user",
+      "os": "both",
+      "service": "all"
+    },
+    {
+      "username": "test",
+      "password": "test",
+      "os": "both",
+      "service": "all"
+    }
+  ],
+  
+  "movement_techniques": {
+    "smb": {
+      "enabled": true,
+      "test_admin_shares": true,
+      "test_hidden_shares": true,
+      "psexec_execution": true,
+      "wmiexec_execution": true
+    },
+    "winrm": {
+      "enabled": true,
+      "test_ssl": true,
+      "powershell_execution": true
+    },
+    "ssh": {
+      "enabled": true,
+      "key_based_auth": true,
+      "password_auth": true,
+      "jump_hosts": true
+    },
+    "rdp": {
+      "enabled": false,
+      "screen_capture": false,
+      "keystroke_injection": false
+    },
+    "wmi": {
+      "enabled": true,
+      "remote_execution": true,
+      "process_creation": true
+    }
+  },
+  
+  "persistence_methods": {
+    "windows": {
+      "registry_run_keys": true,
+      "scheduled_tasks": true,
+      "service_creation": false,
+      "startup_folder": true,
+      "wmi_event_subscriptions": false
+    },
+    "linux": {
+      "cron_jobs": true,
+      "ssh_keys": true,
+      "bashrc_modification": false,
+      "systemd_services": false,
+      "init_scripts": false
+    }
+  },
+  
+  "post_compromise_actions": {
+    "credential_harvesting": true,
+    "network_enumeration": true,
+    "privilege_escalation": true,
+    "lateral_discovery": true,
+    "file_collection": false,
+    "screenshot_capture": false
+  },
+  
+  "evasion_techniques": {
+    "randomize_timing": true,
+    "use_native_tools": true,
+    "avoid_av_signatures": true,
+    "encrypt_communications": false,
+    "proxy_connections": false,
+    "decoy_traffic": false
+  },
+  
+  "network_scanning": {
+    "ping_methods": [
+      "icmp_ping",
+      "tcp_ping", 
+      "udp_ping"
+    ],
+    "port_scan_methods": [
+      "tcp_connect",
+      "tcp_syn",
+      "udp_scan"
+    ],
+    "common_ports": [
+      21, 22, 23, 25, 53, 80, 110, 135, 139, 143, 443, 445, 993, 995, 1433, 3306, 3389, 5432, 5985, 5986
+    ],
+    "scan_timing": "normal",
+    "max_scan_time": 300
+  },
+  
+  "credential_harvesting": {
+    "windows_methods": [
+      "lsass_dump",
+      "registry_sam",
+      "cached_credentials",
+      "lsa_secrets",
+      "dpapi_secrets"
+    ],
+    "linux_methods": [
+      "passwd_shadow",
+      "ssh_keys",
+      "history_files",
+      "config_files",
+      "environment_vars"
+    ],
+    "browser_passwords": false,
+    "wifi_passwords": false
+  },
+  
+  "lateral_tools": {
+    "impacket_suite": {
+      "enabled": true,
+      "tools": ["psexec.py", "wmiexec.py", "smbexec.py", "atexec.py"]
+    },
+    "crackmapexec": {
+      "enabled": true,
+      "protocols": ["smb", "winrm", "ssh", "mssql"]
+    },
+    "evil_winrm": {
+      "enabled": true,
+      "upload_files": true,
+      "download_files": true
+    },
+    "custom_scripts": {
+      "enabled": true,
+      "script_directory": "/opt/pentest/scripts/lateral/"
+    }
+  },
+  
+  "logging_settings": {
+    "detailed_logging": true,
+    "log_failed_attempts": true,
+    "log_credential_usage": true,
+    "log_network_traffic": false,
+    "compress_logs": true
+  },
+  
+  "safety_settings": {
+    "avoid_production_servers": true,
+    "exclude_ip_ranges": [
+      "192.168.1.1/32",
+      "10.0.0.1/32"
+    ],
+    "max_simultaneous_connections": 5,
+    "cleanup_artifacts": true,
+    "restore_original_state": false
+  }
+}
